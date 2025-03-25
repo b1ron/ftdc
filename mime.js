@@ -1,8 +1,29 @@
 // FTDC quick parser
 // Archive File Format - https://github.com/mongodb/mongo/blob/0a68308f0d39a928ed551f285ba72ca560c38576/src/mongo/db/ftdc/README.md#archive-file-format
 
+import * as assert from 'assert';
 import * as BSON from './constants.js';
 import fs from 'fs';
+
+class ExtendedArrayBuffer extends ArrayBuffer {
+  constructor(buffer) {
+    super(buffer);
+    this.buffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    this.view = new DataView(this.buffer);
+  }
+
+  readUInt32LE(offset) {
+    return this.view.getUint32(offset, true);
+  }
+
+  readBigInt64LE(offset) {
+    return this.view.getBigInt64(offset, true);
+  }
+
+  getRawBuffer() {
+    return this.buffer;
+  }
+}
 
 /**
  * Error class for BSON parsing errors.
@@ -51,6 +72,10 @@ function readFTDCFile(filename) {
   let buffer = fs.readFileSync(filename);
   const size = buffer.readUInt32LE(0);
   buffer = buffer.subarray(0, size);
+
+
+  let arrayBuffer = new ExtendedArrayBuffer(buffer);
+  assert.equal(arrayBuffer instanceof ArrayBuffer, true);
 
   if (size < 5) {
     throw new BSONError('Invalid BSON size');
