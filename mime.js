@@ -24,7 +24,6 @@ class BSONError extends Error {
  * @param {number} offset - The starting position for the search.
  * @returns {number|null} - The index before ':' or null if not found.
  *
- * 
  * FIXME: This function is not working as expected, it never seems to find the colon 
  * and always returns null. It is likely that the buffer is not being read correctly.
  */
@@ -45,13 +44,14 @@ function indexBeforeColon(stream, offset = 0) {
  * Reads a BSON file to quicky determine if it's an FTDC file by terminating 
  * early upon finding specific fields or keywords.
  *
- * @param {string} filename - The file to read
- * @returns {boolean} true if the file is an FTDC file
+ * @param {string} filename - The file to read.
+ * @returns {boolean} true if the file is an FTDC file.
  */
 function readFTDCFile(filename) {
   let buffer = fs.readFileSync(filename);
   const size = buffer.readUInt32LE(0);
   buffer = buffer.subarray(0, size);
+
   if (size < 5) {
     throw new BSONError('Invalid BSON size');
   }
