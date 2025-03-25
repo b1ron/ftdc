@@ -5,6 +5,17 @@ import * as assert from 'assert';
 import * as BSON from './constants.js';
 import fs from 'fs';
 
+/**
+ * ExtendedArrayBuffer class to provide additional functionality for reading
+ * BSON files.
+ * 
+ * @class
+ * @extends ArrayBuffer
+ * @param {ArrayBuffer} buffer - The buffer to extend.
+ * @returns {ExtendedArrayBuffer} - The extended buffer.
+ * 
+ * TODO: more methods to be added as needed.
+*/
 class ExtendedArrayBuffer extends ArrayBuffer {
   constructor(buffer) {
     super(buffer);
