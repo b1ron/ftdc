@@ -11,7 +11,7 @@ import fs from 'fs';
  * 
  * @class
  * @extends ArrayBuffer
- * @param {ArrayBuffer} buffer - The buffer to extend.
+ * @param {Buffer} buffer - The buffer to extend.
  * @returns {ExtendedArrayBuffer} - The extended buffer.
  * 
  * TODO: more methods to be added as needed.
