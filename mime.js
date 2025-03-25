@@ -68,8 +68,6 @@ function readFTDCFile(filename) {
     }
 
 
-    console.log('field:', indexBeforeColon(buffer, index));
-
     // locate the end of the c string
     let i = index;
     while (buffer[i] !== 0x00 && i < buffer.length) {
@@ -103,7 +101,7 @@ function readFTDCFile(filename) {
       index += 8;
 
     case BSON.DATA_NULL:
-      console.log('Null', index);
+      console.log('Null');
     case BSON.DATA_REGEXP:
       console.log('RegExp');
     case BSON.DATA_DBPOINTER:
