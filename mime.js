@@ -14,7 +14,7 @@ import fs from 'fs';
  * @param {Buffer} buffer - The buffer to extend.
  * @returns {ExtendedArrayBuffer} - The extended buffer.
  * 
- * TODO: more methods to be added as needed.
+ * TODO: more methods to be added as needed
 */
 class ExtendedArrayBuffer extends ArrayBuffer {
   constructor(buffer) {
