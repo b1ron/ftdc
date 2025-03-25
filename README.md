@@ -1,7 +1,7 @@
 Ignore invalid dates as we are likely not reading the buffer correctly:
 
 ```console
-foo@bar:~$ node mime.js grep -E '20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z'
+foo@bar:~$ node mime.js | grep -E '20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z'
 2021-03-15T02:21:48.000Z
 2021-03-15T02:21:48.000Z
 2021-03-15T02:21:48.000Z
