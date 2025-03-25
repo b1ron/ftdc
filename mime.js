@@ -6,6 +6,7 @@ import fs from 'fs';
 
 /**
  * Error class for BSON parsing errors.
+ *
  * @class
  * @extends Error
 */
