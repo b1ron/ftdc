@@ -40,6 +40,6 @@ foo@bar:~$ node mime.js | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}
 #### TODO
 1. Fix `indexBeforeColon` so that we can get the field names. We are, _again_ most likely not reading the buffer correctly.
 2. Extract field names (depends on 1).
-3. Investigate why we are parsing invalid dates, potentially another buffer releated issue.
+3. Investigate why we are parsing invalid dates, potentially due to another buffer releated issue.
 4. Parse more BSON types which are defined in the `constants.js` file.
 5. Extract the `getCmdLineOpts` field so that we can terminate early.
