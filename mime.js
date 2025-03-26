@@ -3,8 +3,7 @@
 
 import * as assert from 'assert';
 import * as BSON from './constants.js';
-import fs from 'fs';
-
+import * as fs from 'fs';
 /**
  * ExtendedArrayBuffer class to provide additional functionality for reading
  * BSON files.
@@ -73,6 +72,22 @@ function indexBeforeColon(stream, offset = 0) {
 }
 
 /**
+ * Reads a buffer and returns the end of a C string skipping any non-ASCII characters in the process.
+ * 
+ * @param {Buffer} buffer - The buffer to read.
+ * @param {number} offset - The starting position for the search.
+ * @returns {number} - The end of the C string.
+*/
+function readCString(buffer, offset) {
+  let i = offset;
+  const validASCII  = /^[\x20-\x7E]*$/;
+  while (validASCII.test(buffer[i]) === true && buffer[i] !== 0x00 && i < buffer.length) {
+    i++;
+  } 
+  return i;
+}
+
+/**
  * Reads a BSON file to quicky determine if it's an FTDC file by terminating 
  * early upon finding specific fields or keywords.
  *
@@ -83,7 +98,6 @@ function readFTDCFile(filename) {
   let buffer = fs.readFileSync(filename);
   const size = buffer.readUInt32LE(0);
   buffer = buffer.subarray(0, size);
-
 
   let arrayBuffer = new ExtendedArrayBuffer(buffer);
   assert.equal(arrayBuffer instanceof ArrayBuffer, true);
@@ -103,14 +117,8 @@ function readFTDCFile(filename) {
     if (elementType === 0) {
       continue;
     }
-
-
-    // locate the end of the c string
-    let i = index;
-    while (buffer[i] !== 0x00 && i < buffer.length) {
-      i++;
-    }
-    index = i + 1;
+  
+    index = 1 + readCString(buffer, index);
   
     switch (elementType) {
     case BSON.DATA_NUMBER:
@@ -139,6 +147,7 @@ function readFTDCFile(filename) {
       index += 1;
       break;
     case BSON.DATA_DATE:
+
       const data = buffer.subarray(index, index + 8);
       const bigInt = data.readBigInt64LE(0);
       const date = new Date(Number(bigInt));
