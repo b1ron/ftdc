@@ -111,12 +111,18 @@ function readFTDCFile(filename) {
       i++;
     }
     index = i + 1;
-
+  
     switch (elementType) {
     case BSON.DATA_NUMBER:
-      console.log('Number');
+      const number = buffer.readDoubleLE(index);
+      console.log(number);
+      index += 8;
+      break;
     case BSON.DATA_STRING:
-      console.log('String');
+      const length = buffer.readUInt32LE(index);
+      console.log(buffer.toString('utf8', index + 4, index + 4 + length));
+      index += 4 + length;
+      break;
     case BSON.DATA_OBJECT:
       console.log('Object');
     case BSON.DATA_ARRAY:
@@ -128,15 +134,17 @@ function readFTDCFile(filename) {
     case BSON.DATA_OBJECTID:
       console.log('ObjectId');
     case BSON.DATA_BOOLEAN:
-      console.log('Boolean');
+      const bool = buffer[index];
+      console.log(bool === 0 ? false : true);
+      index += 1;
+      break;
     case BSON.DATA_DATE:
       const data = buffer.subarray(index, index + 8);
       const bigInt = data.readBigInt64LE(0);
       const date = new Date(Number(bigInt));
       console.log(date);
-
       index += 8;
-
+      break;
     case BSON.DATA_NULL:
       console.log('Null');
     case BSON.DATA_REGEXP:
@@ -150,15 +158,25 @@ function readFTDCFile(filename) {
     case BSON.DATA_CODE_W_SCOPE:
       console.log('Code with scope');
     case BSON.DATA_INT32:
-      console.log('Int32');
+      const int32 = buffer.readInt32LE(index);
+      console.log(int32);
+      index += 4;
+      break;
     case BSON.DATA_TIMESTAMP:
       console.log('Timestamp');
     case BSON.DATA_LONG:
-      console.log('Long');
+      const long = buffer.readBigInt64LE(index);
+      console.log(long);
+      index += 8;
+      break;
     case BSON.DATA_DECIMAL128:
       console.log('Decimal128');
     case BSON.DATA_MIN_KEY:
       console.log('MinKey');
+    case BSON.DATA_MAX_KEY:
+      console.log('MaxKey');
+    default:
+      console.log('Unknown');
     }
   }
 
