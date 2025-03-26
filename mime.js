@@ -72,16 +72,17 @@ function indexBeforeColon(stream, offset = 0) {
 }
 
 /**
- * Reads a buffer and returns the end of a C string skipping any non-ASCII characters in the process.
+ * Reads a buffer and returns the end of a C string.
  * 
  * @param {Buffer} buffer - The buffer to read.
  * @param {number} offset - The starting position for the search.
  * @returns {number} - The end of the C string.
+
 */
 function readCString(buffer, offset) {
   let i = offset;
-  const validASCII  = /^[\x20-\x7E]*$/;
-  while (validASCII.test(buffer[i]) === true && buffer[i] !== 0x00 && i < buffer.length) {
+
+  while (buffer[i] !== 0x00 && i < buffer.length) {
     i++;
   } 
   return i;
@@ -147,7 +148,6 @@ function readFTDCFile(filename) {
       index += 1;
       break;
     case BSON.DATA_DATE:
-
       const data = buffer.subarray(index, index + 8);
       const bigInt = data.readBigInt64LE(0);
       const date = new Date(Number(bigInt));
