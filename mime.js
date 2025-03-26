@@ -73,19 +73,20 @@ function indexBeforeColon(stream, offset = 0) {
 
 /**
  * Reads a buffer and returns the end of a C string.
+ * It purposely return the index of the null terminator and not extract the actual string.
  * 
  * @param {Buffer} buffer - The buffer to read.
  * @param {number} offset - The starting position for the search.
- * @returns {number} - The end of the C string.
+ * @returns {number} - The index after the null terminator in the C string.
 
 */
-function readCString(buffer, offset) {
+function readCStringIndex(buffer, offset) {
   let i = offset;
 
   while (buffer[i] !== 0x00 && i < buffer.length) {
     i++;
   } 
-  return i;
+  return i + 1;
 }
 
 /**
@@ -119,7 +120,7 @@ function readFTDCFile(filename) {
       continue;
     }
   
-    index = 1 + readCString(buffer, index);
+    index = readCStringIndex(buffer, index);
   
     switch (elementType) {
     case BSON.DATA_NUMBER:
