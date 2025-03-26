@@ -7,7 +7,7 @@
 - [x] Investigate why we are parsing invalid dates.
 - [x] Parse trivial BSON types which are defined in the `constants.js` file.
 - [ ] Parse the `getCmdLineOpts` so that we can terminate early.
-- [ ] strecth goal: parse nested BSON documents. See comments below.
+- [ ] strecth goal: parse nested BSON documents. See section below.
 
 #### Parsing nested BSON documents
 
