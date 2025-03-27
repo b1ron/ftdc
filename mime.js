@@ -7,18 +7,21 @@ import * as fs from 'fs';
 /**
  * ExtendedArrayBuffer class to provide additional functionality for reading
  * BSON files.
- * 
+ *
  * @class
  * @extends ArrayBuffer
  * @param {Buffer} buffer - The buffer to extend.
  * @returns {ExtendedArrayBuffer} - The extended buffer.
- * 
+ *
  * TODO: more methods to be added as needed.
-*/
+ */
 class ExtendedArrayBuffer extends ArrayBuffer {
   constructor(buffer) {
     super(buffer);
-    this.buffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    this.buffer = buffer.buffer.slice(
+      buffer.byteOffset,
+      buffer.byteOffset + buffer.byteLength
+    );
     this.view = new DataView(this.buffer);
   }
 
@@ -40,7 +43,7 @@ class ExtendedArrayBuffer extends ArrayBuffer {
  *
  * @class
  * @extends Error
-*/
+ */
 class BSONError extends Error {
   constructor(message) {
     super(message);
@@ -55,21 +58,21 @@ class BSONError extends Error {
  * @param {number} offset - The starting position for the search.
  * @returns {number|null} - The index before ':' or null if not found.
  *
- * FIXME: This function is not working as expected, it never seems to find the colon 
+ * FIXME: This function is not working as expected, it never seems to find the colon
  * and always returns null. It is likely that the buffer is not being read correctly.
  */
-function indexBeforeColon(stream, offset = 0) {
-  if (!stream || stream.length === 0) {
-    return null;
-  }
+// function indexBeforeColon(stream, offset = 0) {
+//   if (!stream || stream.length === 0) {
+//     return null;
+//   }
 
-  let i = offset;
-  while (i < stream.length && stream[i] !== ':') {
-    i++;
-  }
+//   let i = offset;
+//   while (i < stream.length && stream[i] !== ':') {
+//     i++;
+//   }
 
-  return i < stream.length ? i - 1 : null; // return index before ':', or null if not found
-}
+//   return i < stream.length ? i - 1 : null; // return index before ':', or null if not found
+// }
 
 /**
  * Reads a buffer and returns the end of a C string.
@@ -85,12 +88,12 @@ function indexAfterCString(buffer, offset) {
 
   while (buffer[i] !== 0x00 && i < buffer.length) {
     i++;
-  } 
+  }
   return i + 1;
 }
 
 /**
- * Reads a BSON file to quicky determine if it's an FTDC file by terminating 
+ * Reads a BSON file to quicky determine if it's an FTDC file by terminating
  * early upon finding specific fields or keywords.
  *
  * @param {string} filename - The file to read.
@@ -119,9 +122,9 @@ function readFTDCFile(filename) {
     if (elementType === 0) {
       continue;
     }
-  
+
     index = indexAfterCString(buffer, index);
-  
+
     switch (elementType) {
     case BSON.DATA_NUMBER:
       const number = buffer.readDoubleLE(index);
@@ -130,7 +133,7 @@ function readFTDCFile(filename) {
       break;
     case BSON.DATA_STRING:
       const length = buffer.readUInt32LE(index);
-      const str = buffer.toString('utf8', index + 4, index + 4 + length-1); // -1 to remove null terminator
+      const str = buffer.toString('utf8', index + 4, index + 4 + length - 1); // -1 to remove null terminator
       console.log(str);
       index += 4 + length;
       break;
