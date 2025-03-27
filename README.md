@@ -14,7 +14,7 @@
 
 #### NOTE:
 
-This is only needed if we want to reserialize to JSON etc.
+This is only needed if we want to reserialize.
 
 If we want to extend this parser to parse nested BSON documents, we can use a stack to keep track of the current object. This will allow us to parse flat and nested documents without the need for recursion. This is more efficient for flat and sequential data and prevents a stack overflow. We should enforce a BSON depth nesting limit, but make it smaller than the default limit of 200 because this depth seems excessive for our use case.
 
