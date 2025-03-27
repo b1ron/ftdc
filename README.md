@@ -4,6 +4,7 @@
 
 - [ ] Fix `indexBeforeColon` so that we can get the field names. This is currently broken.
 - [ ] Extract field names (depends on 1).
+- [ ] Refactor and port everything to client-side JavaScript. Run `npm run lint` to help catch Node.js-specific code.
 - [x] Investigate why we are parsing invalid dates.
 - [x] Parse trivial BSON types which are defined in the `constants.js` file.
 - [ ] Parse the `getCmdLineOpts` so that we can terminate early.
