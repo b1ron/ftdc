@@ -80,7 +80,7 @@ function indexBeforeColon(stream, offset = 0) {
  * @returns {number} - The index after the null terminator in the C string.
 
 */
-function readCStringIndex(buffer, offset) {
+function indexAfterCString(buffer, offset) {
   let i = offset;
 
   while (buffer[i] !== 0x00 && i < buffer.length) {
@@ -120,7 +120,7 @@ function readFTDCFile(filename) {
       continue;
     }
   
-    index = readCStringIndex(buffer, index);
+    index = indexAfterCString(buffer, index);
   
     switch (elementType) {
     case BSON.DATA_NUMBER:
