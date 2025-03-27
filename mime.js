@@ -77,7 +77,7 @@ function indexBeforeColon(stream, offset = 0) {
 
 /**
  * Reads a buffer and returns the index at the end of a C string.
- * It purposely returns the index of the null terminator and not extracts the actual string.
+ * It purposely returns the index of the null terminator and not the string.
  * 
  * @param {Buffer} buffer - The buffer to read.
  * @param {number} offset - The starting position for the search.
