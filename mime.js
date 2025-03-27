@@ -133,8 +133,8 @@ function readFTDCFile(filename) {
       break;
     case BSON.DATA_STRING:
       const length = buffer.readUInt32LE(index);
-      const str = buffer.toString('utf8', index + 4, index + 4 + length - 1); // -1 to remove null terminator
-      console.log(str);
+      const string = buffer.toString('utf8', index + 4, index + 4 + length - 1); // -1 to remove null terminator
+      console.log(string);
       index += 4 + length;
       break;
     case BSON.DATA_OBJECT:
