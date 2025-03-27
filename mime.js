@@ -61,18 +61,18 @@ class BSONError extends Error {
  * FIXME: This function is not working as expected, it never seems to find the colon
  * and always returns null. It is likely that the buffer is not being read correctly.
  */
-// function indexBeforeColon(stream, offset = 0) {
-//   if (!stream || stream.length === 0) {
-//     return null;
-//   }
+function indexBeforeColon(stream, offset = 0) {
+  if (!stream || stream.length === 0) {
+    return null;
+  }
 
-//   let i = offset;
-//   while (i < stream.length && stream[i] !== ':') {
-//     i++;
-//   }
+  let i = offset;
+  while (i < stream.length && stream[i] !== ':') {
+    i++;
+  }
 
-//   return i < stream.length ? i - 1 : null; // return index before ':', or null if not found
-// }
+  return i < stream.length ? i - 1 : null; // return index before ':', or null if not found
+}
 
 /**
  * Reads a buffer and returns the end of a C string.
