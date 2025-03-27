@@ -4,6 +4,7 @@
 import * as assert from 'assert';
 import * as BSON from './constants.js';
 import * as fs from 'fs';
+
 /**
  * ExtendedArrayBuffer class to provide additional functionality for reading
  * BSON files.
@@ -16,26 +17,26 @@ import * as fs from 'fs';
  * TODO: more methods to be added as needed.
  */
 class ExtendedArrayBuffer extends ArrayBuffer {
-  constructor(buffer) {
-    super(buffer);
-    this.buffer = buffer.buffer.slice(
-      buffer.byteOffset,
-      buffer.byteOffset + buffer.byteLength
-    );
-    this.view = new DataView(this.buffer);
-  }
+	constructor(buffer) {
+		super(buffer);
+		this.buffer = buffer.buffer.slice(
+			buffer.byteOffset,
+			buffer.byteOffset + buffer.byteLength
+		);
+		this.view = new DataView(this.buffer);
+	}
 
-  readUInt32LE(offset) {
-    return this.view.getUint32(offset, true);
-  }
+	readUInt32LE(offset) {
+		return this.view.getUint32(offset, true);
+	}
 
-  readBigInt64LE(offset) {
-    return this.view.getBigInt64(offset, true);
-  }
+	readBigInt64LE(offset) {
+		return this.view.getBigInt64(offset, true);
+	}
 
-  getRawBuffer() {
-    return this.buffer;
-  }
+	getRawBuffer() {
+		return this.buffer;
+	}
 }
 
 /**
@@ -45,10 +46,10 @@ class ExtendedArrayBuffer extends ArrayBuffer {
  * @extends Error
  */
 class BSONError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'BSONError';
-  }
+	constructor(message) {
+		super(message);
+		this.name = 'BSONError';
+	}
 }
 
 /**
@@ -62,16 +63,16 @@ class BSONError extends Error {
  * and always returns null. It is likely that the buffer is not being read correctly.
  */
 function indexBeforeColon(stream, offset = 0) {
-  if (!stream || stream.length === 0) {
-    return null;
-  }
+	if (!stream || stream.length === 0) {
+		return null;
+	}
 
-  let i = offset;
-  while (i < stream.length && stream[i] !== ':') {
-    i++;
-  }
+	let i = offset;
+	while (i < stream.length && stream[i] !== ':') {
+		i++;
+	}
 
-  return i < stream.length ? i - 1 : null; // return index before ':', or null if not found
+	return i < stream.length ? i - 1 : null; // return index before ':', or null if not found
 }
 
 /**
@@ -84,12 +85,12 @@ function indexBeforeColon(stream, offset = 0) {
 
 */
 function indexAfterCString(buffer, offset) {
-  let i = offset;
+	let i = offset;
 
-  while (buffer[i] !== 0x00 && i < buffer.length) {
-    i++;
-  }
-  return i + 1;
+	while (buffer[i] !== 0x00 && i < buffer.length) {
+		i++;
+	}
+	return i + 1;
 }
 
 /**
@@ -100,101 +101,101 @@ function indexAfterCString(buffer, offset) {
  * @returns {boolean} true if the file is an FTDC file.
  */
 function readFTDCFile(filename) {
-  let buffer = fs.readFileSync(filename);
-  const size = buffer.readUInt32LE(0);
-  buffer = buffer.subarray(0, size);
+	let buffer = fs.readFileSync(filename);
+	const size = buffer.readUInt32LE(0);
+	buffer = buffer.subarray(0, size);
 
-  let arrayBuffer = new ExtendedArrayBuffer(buffer);
-  assert.equal(arrayBuffer instanceof ArrayBuffer, true);
+	let arrayBuffer = new ExtendedArrayBuffer(buffer);
+	assert.equal(arrayBuffer instanceof ArrayBuffer, true);
 
-  if (size < 5) {
-    throw new BSONError('Invalid BSON size');
-  }
-  if (buffer[size - 1] !== 0) {
-    throw new BSONError('Invalid BSON terminator');
-  }
+	if (size < 5) {
+		throw new BSONError('Invalid BSON size');
+	}
+	if (buffer[size - 1] !== 0) {
+		throw new BSONError('Invalid BSON terminator');
+	}
 
-  let index = 4;
+	let index = 4;
 
-  while (index < buffer.length) {
-    const elementType = buffer[index++];
+	while (index < buffer.length) {
+		const elementType = buffer[index++];
 
-    if (elementType === 0) {
-      continue;
-    }
+		if (elementType === 0) {
+			continue;
+		}
 
-    index = indexAfterCString(buffer, index);
+		index = indexAfterCString(buffer, index);
 
-    switch (elementType) {
-    case BSON.DATA_NUMBER:
-      const number = buffer.readDoubleLE(index);
-      console.log(number);
-      index += 8;
-      break;
-    case BSON.DATA_STRING:
-      const length = buffer.readUInt32LE(index);
-      const string = buffer.toString('utf8', index + 4, index + 4 + length - 1); // -1 to remove null terminator
-      console.log(string);
-      index += 4 + length;
-      break;
-    case BSON.DATA_OBJECT:
-      console.log('Object');
-    case BSON.DATA_ARRAY:
-      console.log('Array');
-    case BSON.DATA_BINARY:
-      console.log('Binary');
-    case BSON.DATA_UNDEFINED:
-      console.log('Undefined');
-    case BSON.DATA_OBJECTID:
-      console.log('ObjectId');
-    case BSON.DATA_BOOLEAN:
-      const bool = buffer[index];
-      console.log(bool === 0 ? false : true);
-      index += 1;
-      break;
-    case BSON.DATA_DATE:
-      const data = buffer.subarray(index, index + 8);
-      const bigInt = data.readBigInt64LE(0);
-      const date = new Date(Number(bigInt));
-      console.log(date);
-      index += 8;
-      break;
-    case BSON.DATA_NULL:
-      console.log('Null');
-    case BSON.DATA_REGEXP:
-      console.log('RegExp');
-    case BSON.DATA_DBPOINTER:
-      console.log('DBPointer');
-    case BSON.DATA_CODE:
-      console.log('Code');
-    case BSON.DATA_SYMBOL:
-      console.log('Symbol');
-    case BSON.DATA_CODE_W_SCOPE:
-      console.log('Code with scope');
-    case BSON.DATA_INT32:
-      const int32 = buffer.readInt32LE(index);
-      console.log(int32);
-      index += 4;
-      break;
-    case BSON.DATA_TIMESTAMP:
-      console.log('Timestamp');
-    case BSON.DATA_LONG:
-      const long = buffer.readBigInt64LE(index);
-      console.log(long);
-      index += 8;
-      break;
-    case BSON.DATA_DECIMAL128:
-      console.log('Decimal128');
-    case BSON.DATA_MIN_KEY:
-      console.log('MinKey');
-    case BSON.DATA_MAX_KEY:
-      console.log('MaxKey');
-    default:
-      console.log('Unknown');
-    }
-  }
+		switch (elementType) {
+			case BSON.DATA_NUMBER:
+				const number = buffer.readDoubleLE(index);
+				console.log(number);
+				index += 8;
+				break;
+			case BSON.DATA_STRING:
+				const length = buffer.readUInt32LE(index);
+				// const string = buffer.toString('utf8', index + 4 + index + 4 + length - 1); // -1 to remove null terminator
+				console.log(string);
+				index += 4 + length;
+				break;
+			case BSON.DATA_OBJECT:
+				console.log('Object');
+			case BSON.DATA_ARRAY:
+				console.log('Array');
+			case BSON.DATA_BINARY:
+				console.log('Binary');
+			case BSON.DATA_UNDEFINED:
+				console.log('Undefined');
+			case BSON.DATA_OBJECTID:
+				console.log('ObjectId');
+			case BSON.DATA_BOOLEAN:
+				const bool = buffer[index];
+				console.log(bool === 0 ? false : true);
+				index += 1;
+				break;
+			case BSON.DATA_DATE:
+				const data = buffer.subarray(index, index + 8);
+				const bigInt = data.readBigInt64LE(0);
+				const date = new Date(Number(bigInt));
+				console.log(date);
+				index += 8;
+				break;
+			case BSON.DATA_NULL:
+				console.log('Null');
+			case BSON.DATA_REGEXP:
+				console.log('RegExp');
+			case BSON.DATA_DBPOINTER:
+				console.log('DBPointer');
+			case BSON.DATA_CODE:
+				console.log('Code');
+			case BSON.DATA_SYMBOL:
+				console.log('Symbol');
+			case BSON.DATA_CODE_W_SCOPE:
+				console.log('Code with scope');
+			case BSON.DATA_INT32:
+				const int32 = buffer.readInt32LE(index);
+				console.log(int32);
+				index += 4;
+				break;
+			case BSON.DATA_TIMESTAMP:
+				console.log('Timestamp');
+			case BSON.DATA_LONG:
+				const long = buffer.readBigInt64LE(index);
+				console.log(long);
+				index += 8;
+				break;
+			case BSON.DATA_DECIMAL128:
+				console.log('Decimal128');
+			case BSON.DATA_MIN_KEY:
+				console.log('MinKey');
+			case BSON.DATA_MAX_KEY:
+				console.log('MaxKey');
+			default:
+				console.log('Unknown');
+		}
+	}
 
-  return true;
+	return true;
 }
 
 readFTDCFile('files/metrics.2021-03-15T02-21-47Z-00000');
