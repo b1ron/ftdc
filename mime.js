@@ -155,15 +155,12 @@ function readFTDCFile(filename) {
 				index += result.size;
 				break;
 			case BSON.DATA_OBJECT:
+				// TODO: tricky to parse nested objects
 				break;
 			case BSON.DATA_ARRAY:
-				break;
 			case BSON.DATA_BINARY:
-				break;
 			case BSON.DATA_UNDEFINED:
-				break;
 			case BSON.DATA_OBJECTID:
-				break;
 			case BSON.DATA_BOOLEAN:
 				const bool = buffer[index] === 0 ? false : true;
 				console.log(keyName, bool);
@@ -176,17 +173,11 @@ function readFTDCFile(filename) {
 				index += 8;
 				break;
 			case BSON.DATA_NULL:
-				break;
 			case BSON.DATA_REGEXP:
-				break;
 			case BSON.DATA_DBPOINTER:
-				break;
 			case BSON.DATA_CODE:
-				break;
 			case BSON.DATA_SYMBOL:
-				break;
 			case BSON.DATA_CODE_W_SCOPE:
-				break;
 			case BSON.DATA_INT32:
 				const int32 = buffer.readInt32LE(index);
 				index += 4;
@@ -198,11 +189,8 @@ function readFTDCFile(filename) {
 				index += 8;
 				break;
 			case BSON.DATA_DECIMAL128:
-				break;
 			case BSON.DATA_MIN_KEY:
-				break;
 			case BSON.DATA_MAX_KEY:
-				break;
 			default:
 				break;
 		}
