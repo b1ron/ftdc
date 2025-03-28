@@ -93,47 +93,31 @@ function readFTDCFile(filename) {
 
 	let index = 4;
 
-	// stack for nested documents
-	const stack = [];
-	const stackTypes = { Object: true, Array: true };
-	stack.push({
-		level: 0,
-		type: 'root', // root document should be handled differently
-		buffer: buffer,
-		document: {},
-	});
-
 	const document = {};
 
-	let item = stack[stack.length - 1];
-	while (stack.length > 0 || index < buffer.length) {
-		if (stackTypes[stack[stack.length - 1].type] === true) {
-			item = stack.pop();
-			console.log('stack type detected', item.type); // pop a stack item
-		}
-
-		const elementType = item.buffer[index++];
+	while (index < buffer.length) {
+		const elementType = buffer[index++];
 
 		if (elementType === 0) {
 			continue;
 		}
 
-		const keyName = item.buffer.toString(
+		const keyName = buffer.toString(
 			'utf-8',
 			index,
-			indexAfterCString(item.buffer, index) - 1
+			indexAfterCString(buffer, index) - 1
 		);
 
-		item.document[keyName] = null;
+		document[keyName] = null;
 
-		index = indexAfterCString(item.buffer, index);
+		index = indexAfterCString(buffer, index);
 
 		switch (elementType) {
 			case BSON.DATA_NUMBER:
 				console.log('Number');
 				const number = buffer.readDoubleLE(index);
-				item.document[keyName] = number;
-				console.log(item.document);
+				document[keyName] = number;
+				console.log(document);
 				index += 8;
 				break;
 			case BSON.DATA_STRING:
@@ -143,23 +127,12 @@ function readFTDCFile(filename) {
 					'utf8',
 					index + 4 + index + 4 + length - 1
 				); // -1 to remove null terminator
-				item.document[keyName] = string;
-				console.log(item.document);
+				document[keyName] = string;
+				console.log(document);
 				index += 4 + length;
 				break;
 			case BSON.DATA_OBJECT:
 				console.log('Object');
-				const size = item.buffer.readUInt32LE(index);
-				item.document[keyName] = {};
-
-				console.log(item.document);
-
-				stack.push({
-					level: 1,
-					type: 'Object',
-					buffer: item.buffer.subarray(index, index + size),
-					document: item.document[keyName],
-				});
 				break;
 			case BSON.DATA_ARRAY:
 				console.log('Array');
@@ -176,17 +149,17 @@ function readFTDCFile(filename) {
 			case BSON.DATA_BOOLEAN:
 				console.log('Boolean');
 				const bool = buffer[index];
-				item.document[keyName] = bool === 0 ? false : true;
-				console.log(item.document);
+				document[keyName] = bool === 0 ? false : true;
+				console.log(document);
 				index += 1;
 				break;
 			case BSON.DATA_DATE:
 				console.log('Date');
-				const data = item.buffer.subarray(index, index + 8);
+				const data = buffer.subarray(index, index + 8);
 				const bigInt = data.readBigInt64LE(0);
 				const date = new Date(Number(bigInt));
-				item.document[keyName] = date;
-				console.log(item.document);
+				document[keyName] = date;
+				console.log(document);
 				index += 8;
 				break;
 			case BSON.DATA_NULL:
@@ -210,8 +183,8 @@ function readFTDCFile(filename) {
 			case BSON.DATA_INT32:
 				console.log('Int32');
 				const int32 = buffer.readInt32LE(index);
-				item.document[keyName] = int32;
-				console.log(item.document);
+				document[keyName] = int32;
+				console.log(document);
 				index += 4;
 				break;
 			case BSON.DATA_TIMESTAMP:
@@ -220,8 +193,8 @@ function readFTDCFile(filename) {
 			case BSON.DATA_LONG:
 				console.log('Long');
 				const long = buffer.readBigInt64LE(index);
-				item.document[keyName] = long;
-				console.log(item.document);
+				document[keyName] = long;
+				console.log(document);
 				index += 8;
 				break;
 			case BSON.DATA_DECIMAL128:
