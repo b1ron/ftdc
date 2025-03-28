@@ -53,29 +53,6 @@ class BSONError extends Error {
 }
 
 /**
- * Finds the index before the first occurrence of ':' in the stream.
- *
- * @param {string|Buffer} stream - The internal serialization buffer.
- * @param {number} offset - The starting position for the search.
- * @returns {number|null} - The index before ':' or null if not found.
- *
- * FIXME: This function is not working as expected, it never seems to find the colon
- * and always returns null. It is likely that the buffer is not being read correctly.
- */
-function indexBeforeColon(stream, offset = 0) {
-	if (!stream || stream.length === 0) {
-		return null;
-	}
-
-	let i = offset;
-	while (i < stream.length && stream[i] !== ':') {
-		i++;
-	}
-
-	return i < stream.length ? i - 1 : null; // return index before ':', or null if not found
-}
-
-/**
  * Reads a buffer and returns the index at the end of a C string.
  * It purposely returns the index after the null terminator and not the actual string.
  *
@@ -116,81 +93,149 @@ function readFTDCFile(filename) {
 
 	let index = 4;
 
-	while (index < buffer.length) {
-		const elementType = buffer[index++];
+	// stack for nested documents
+	const stack = [];
+	const stackTypes = { Object: true, Array: true };
+	stack.push({
+		level: 0,
+		type: 'root', // root document should be handled differently
+		buffer: buffer,
+		document: {},
+	});
+
+	const document = {};
+
+	let item = stack[stack.length - 1];
+	while (stack.length > 0 || index < buffer.length) {
+		if (stackTypes[stack[stack.length - 1].type] === true) {
+			item = stack.pop();
+			console.log('stack type detected', item.type); // pop a stack item
+		}
+
+		const elementType = item.buffer[index++];
 
 		if (elementType === 0) {
 			continue;
 		}
 
-		index = indexAfterCString(buffer, index);
+		const keyName = item.buffer.toString(
+			'utf-8',
+			index,
+			indexAfterCString(item.buffer, index) - 1
+		);
+
+		item.document[keyName] = null;
+
+		index = indexAfterCString(item.buffer, index);
 
 		switch (elementType) {
 			case BSON.DATA_NUMBER:
+				console.log('Number');
 				const number = buffer.readDoubleLE(index);
-				console.log(number);
+				item.document[keyName] = number;
+				console.log(item.document);
 				index += 8;
 				break;
 			case BSON.DATA_STRING:
+				console.log('String');
 				const length = buffer.readUInt32LE(index);
-				// const string = buffer.toString('utf8', index + 4 + index + 4 + length - 1); // -1 to remove null terminator
-				console.log(string);
+				const string = buffer.toString(
+					'utf8',
+					index + 4 + index + 4 + length - 1
+				); // -1 to remove null terminator
+				item.document[keyName] = string;
+				console.log(item.document);
 				index += 4 + length;
 				break;
 			case BSON.DATA_OBJECT:
 				console.log('Object');
+				const size = item.buffer.readUInt32LE(index);
+				item.document[keyName] = {};
+
+				console.log(item.document);
+
+				stack.push({
+					level: 1,
+					type: 'Object',
+					buffer: item.buffer.subarray(index, index + size),
+					document: item.document[keyName],
+				});
+				break;
 			case BSON.DATA_ARRAY:
 				console.log('Array');
+				break;
 			case BSON.DATA_BINARY:
 				console.log('Binary');
+				break;
 			case BSON.DATA_UNDEFINED:
 				console.log('Undefined');
+				break;
 			case BSON.DATA_OBJECTID:
 				console.log('ObjectId');
+				break;
 			case BSON.DATA_BOOLEAN:
+				console.log('Boolean');
 				const bool = buffer[index];
-				console.log(bool === 0 ? false : true);
+				item.document[keyName] = bool === 0 ? false : true;
+				console.log(item.document);
 				index += 1;
 				break;
 			case BSON.DATA_DATE:
-				const data = buffer.subarray(index, index + 8);
+				console.log('Date');
+				const data = item.buffer.subarray(index, index + 8);
 				const bigInt = data.readBigInt64LE(0);
 				const date = new Date(Number(bigInt));
-				console.log(date);
+				item.document[keyName] = date;
+				console.log(item.document);
 				index += 8;
 				break;
 			case BSON.DATA_NULL:
 				console.log('Null');
+				break;
 			case BSON.DATA_REGEXP:
 				console.log('RegExp');
+				break;
 			case BSON.DATA_DBPOINTER:
 				console.log('DBPointer');
+				break;
 			case BSON.DATA_CODE:
 				console.log('Code');
+				break;
 			case BSON.DATA_SYMBOL:
 				console.log('Symbol');
+				break;
 			case BSON.DATA_CODE_W_SCOPE:
 				console.log('Code with scope');
+				break;
 			case BSON.DATA_INT32:
+				console.log('Int32');
 				const int32 = buffer.readInt32LE(index);
-				console.log(int32);
+				item.document[keyName] = int32;
+				console.log(item.document);
 				index += 4;
 				break;
 			case BSON.DATA_TIMESTAMP:
 				console.log('Timestamp');
+				break;
 			case BSON.DATA_LONG:
+				console.log('Long');
 				const long = buffer.readBigInt64LE(index);
-				console.log(long);
+				item.document[keyName] = long;
+				console.log(item.document);
 				index += 8;
 				break;
 			case BSON.DATA_DECIMAL128:
 				console.log('Decimal128');
+				break;
 			case BSON.DATA_MIN_KEY:
 				console.log('MinKey');
+				break;
 			case BSON.DATA_MAX_KEY:
 				console.log('MaxKey');
+				break;
 			default:
 				console.log('Unknown');
+				break;
 		}
 	}
 
