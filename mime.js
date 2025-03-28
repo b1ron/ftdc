@@ -70,6 +70,40 @@ function indexAfterCString(buffer, offset) {
 }
 
 /**
+ * Extracts strings from a buffer.
+ *
+ * @param {Buffer} buffer - The buffer to extract strings from.
+ * @param {number} minLength - The minimum length of a string to be extracted.
+ * @returns {object} - The extracted strings and the total size in bytes.
+ *
+ */
+function strings(buffer, minLength = 4) {
+	const printableChars = /^[\x20-\x7E]+$/; // ASCII printable characters
+
+	let result = [];
+	let currentString = '';
+	let size = 0;
+
+	for (let i = 0; i < buffer.length; i++) {
+		const char = String.fromCharCode(buffer[i]);
+		if (printableChars.test(char)) {
+			currentString += char;
+		} else {
+			if (currentString.length >= minLength) {
+				result.push(currentString);
+				size += Buffer.byteLength(currentString, 'utf8');
+			}
+			currentString = '';
+		}
+	}
+	if (currentString.length >= minLength) {
+		result.push(currentString);
+		size += Buffer.byteLength(currentString, 'utf8');
+	}
+	return { output: result.join('\n'), size };
+}
+
+/**
  * Reads a BSON file to quicky determine if it's an FTDC file by terminating
  * early upon finding specific fields or keywords.
  *
@@ -93,8 +127,6 @@ function readFTDCFile(filename) {
 
 	let index = 4;
 
-	const document = {};
-
 	while (index < buffer.length) {
 		const elementType = buffer[index++];
 
@@ -108,111 +140,76 @@ function readFTDCFile(filename) {
 			indexAfterCString(buffer, index) - 1
 		);
 
-		document[keyName] = null;
-
 		index = indexAfterCString(buffer, index);
 
 		switch (elementType) {
 			case BSON.DATA_NUMBER:
-				console.log('Number');
 				const number = buffer.readDoubleLE(index);
-				document[keyName] = number;
-				console.log(document);
 				index += 8;
 				break;
 			case BSON.DATA_STRING:
-				console.log('String');
-				const length = buffer.readUInt32LE(index);
-				const string = buffer.toString(
-					'utf8',
-					index + 4 + index + 4 + length - 1
-				); // -1 to remove null terminator
-				document[keyName] = string;
-				console.log(document);
-				index += 4 + length;
+				const result = strings(buffer.subarray(index));
+				if (result.size > 0 && result.output.includes('getCmdLineOpts')) {
+					return true;
+				}
+				index += result.size;
 				break;
 			case BSON.DATA_OBJECT:
-				console.log('Object');
 				break;
 			case BSON.DATA_ARRAY:
-				console.log('Array');
 				break;
 			case BSON.DATA_BINARY:
-				console.log('Binary');
 				break;
 			case BSON.DATA_UNDEFINED:
-				console.log('Undefined');
 				break;
 			case BSON.DATA_OBJECTID:
-				console.log('ObjectId');
 				break;
 			case BSON.DATA_BOOLEAN:
-				console.log('Boolean');
-				const bool = buffer[index];
-				document[keyName] = bool === 0 ? false : true;
-				console.log(document);
+				const bool = buffer[index] === 0 ? false : true;
+				console.log(keyName, bool);
 				index += 1;
 				break;
 			case BSON.DATA_DATE:
-				console.log('Date');
 				const data = buffer.subarray(index, index + 8);
 				const bigInt = data.readBigInt64LE(0);
 				const date = new Date(Number(bigInt));
-				document[keyName] = date;
-				console.log(document);
 				index += 8;
 				break;
 			case BSON.DATA_NULL:
-				console.log('Null');
 				break;
 			case BSON.DATA_REGEXP:
-				console.log('RegExp');
 				break;
 			case BSON.DATA_DBPOINTER:
-				console.log('DBPointer');
 				break;
 			case BSON.DATA_CODE:
-				console.log('Code');
 				break;
 			case BSON.DATA_SYMBOL:
-				console.log('Symbol');
 				break;
 			case BSON.DATA_CODE_W_SCOPE:
-				console.log('Code with scope');
 				break;
 			case BSON.DATA_INT32:
-				console.log('Int32');
 				const int32 = buffer.readInt32LE(index);
-				document[keyName] = int32;
-				console.log(document);
 				index += 4;
 				break;
 			case BSON.DATA_TIMESTAMP:
-				console.log('Timestamp');
 				break;
 			case BSON.DATA_LONG:
-				console.log('Long');
 				const long = buffer.readBigInt64LE(index);
-				document[keyName] = long;
-				console.log(document);
 				index += 8;
 				break;
 			case BSON.DATA_DECIMAL128:
-				console.log('Decimal128');
 				break;
 			case BSON.DATA_MIN_KEY:
-				console.log('MinKey');
 				break;
 			case BSON.DATA_MAX_KEY:
-				console.log('MaxKey');
 				break;
 			default:
-				console.log('Unknown');
 				break;
 		}
 	}
 
-	return true;
+	return false;
 }
 
-readFTDCFile('files/metrics.2021-03-15T02-21-47Z-00000');
+const result = readFTDCFile('files/metrics.2021-03-15T02-21-47Z-00000');
+console.log(result === true ? 'FTDC file' : 'Not an FTDC file');
