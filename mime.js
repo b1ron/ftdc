@@ -104,7 +104,7 @@ function strings(buffer, minLength = 4) {
 		result.push(currentString);
 		size += Buffer.byteLength(currentString, 'utf8');
 	}
-	return { output: result.join('\n'), size };
+	return { output: result.join(' '), size };
 }
 
 /**
