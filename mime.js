@@ -34,6 +34,10 @@ class ExtendedArrayBuffer extends ArrayBuffer {
 		return this.view.getBigInt64(offset, true);
 	}
 
+	byteLength() {
+		return this.buffer.byteLength;
+	}
+
 	getRawBuffer() {
 		return this.buffer;
 	}
@@ -163,7 +167,6 @@ function readFTDCFile(filename) {
 			case BSON.DATA_OBJECTID:
 			case BSON.DATA_BOOLEAN:
 				const bool = buffer[index] === 0 ? false : true;
-				console.log(keyName, bool);
 				index += 1;
 				break;
 			case BSON.DATA_DATE:
