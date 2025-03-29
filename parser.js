@@ -93,7 +93,7 @@ function toHex() {
  * @returns {void}
  * @api private
  */
-function addTypedArrayMethods(prototype) {
+function addUint8ArrayMethods(prototype) {
 	prototype.readUInt32LE = readUInt32LE;
 	prototype.toHex = toHex;
 }
@@ -106,7 +106,7 @@ function addTypedArrayMethods(prototype) {
  * @returns {boolean} - true if the file is an FTDC file.
  */
 async function readFTDCFile(uri) {
-	addTypedArrayMethods(Uint8Array.prototype);
+	addUint8ArrayMethods(Uint8Array.prototype);
 
 	let buffer;
 
