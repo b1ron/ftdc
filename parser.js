@@ -3,6 +3,7 @@
 
 import * as assert from 'assert';
 import * as BSON from './constants.js';
+import { sep } from 'path';
 
 const uInt8Float32Array = new Uint8Array(4);
 const uInt8Float64Array = new Uint8Array(8);
@@ -14,10 +15,10 @@ const uInt8Float64Array = new Uint8Array(8);
  * @extends Error
  */
 class BSONError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'BSONError';
-  }
+	constructor(message) {
+		super(message);
+		this.name = 'BSONError';
+	}
 }
 
 /**
@@ -30,11 +31,11 @@ class BSONError extends Error {
  * @returns {number} - The index after the null terminator in the C string.
  */
 function indexAfterCString(buffer, offset) {
-  let i = offset;
-  while (buffer[i] !== 0x00 && i < buffer.length) {
-    i++;
-  }
-  return i + 1;
+	let i = offset;
+	while (buffer[i] !== 0x00 && i < buffer.length) {
+		i++;
+	}
+	return i + 1;
 }
 
 /**
@@ -47,91 +48,88 @@ function indexAfterCString(buffer, offset) {
  * @returns {object} - The extracted strings and the total size in bytes.
  */
 function strings(buffer, minLength = 4) {
-  const printableChars = /^[\x20-\x7E]+$/; // ASCII printable characters
-  const result = [];
+	const printableChars = /^[\x20-\x7E]+$/; // ASCII printable characters
+	const result = [];
 
-  let currentString = '';
-  let size = 0;
-  for (let i = 0; i < buffer.length; i++) {
-    const char = String.fromCharCode(buffer[i]);
-    if (printableChars.test(char)) {
-      currentString += char;
-    } else {
-      if (currentString.length >= minLength) {
-        result.push(currentString);
-        size += Buffer.byteLength(currentString, 'utf8');
-      }
-      currentString = '';
-    }
-  }
-  // handle any remaining string at the end of the buffer
-  if (currentString.length >= minLength) {
-    result.push(currentString);
-    size += Buffer.byteLength(currentString, 'utf8');
-  }
-  return {output: result.join(' '), size};
+	let currentString = '';
+	let size = 0;
+	for (let i = 0; i < buffer.length; i++) {
+		const char = String.fromCharCode(buffer[i]);
+		if (printableChars.test(char)) {
+			currentString += char;
+		} else {
+			if (currentString.length >= minLength) {
+				result.push(currentString);
+				size += Buffer.byteLength(currentString, 'utf8');
+			}
+			currentString = '';
+		}
+	}
+	// handle any remaining string at the end of the buffer
+	if (currentString.length >= minLength) {
+		result.push(currentString);
+		size += Buffer.byteLength(currentString, 'utf8');
+	}
+	return { output: result.join(' '), size };
 }
 
-// FIXME: WIP hack
 function readObjectId(buffer, offset) {
-  const value = buffer.slice(offset, offset + 12);
-  return `ObjectId(${value.toHex(0)})`;
+	const value = buffer.slice(offset, offset + 12);
+	return `ObjectId(${value.toHex()})`;
 }
 
 function readUInt32LE(offset = 0) {
-  const first = this[offset];
-  const last = this[offset + 3];
-  if (first === undefined || last === undefined) {
-    throw new RangeError('Index out of range');
-  }
+	const first = this[offset];
+	const last = this[offset + 3];
+	if (first === undefined || last === undefined) {
+		throw new RangeError('Index out of range');
+	}
 
-  return (
-    first + this[++offset] * 2 ** 8 + this[++offset] * 2 ** 16 + last * 2 ** 24
-  );
+	return (
+		first + this[++offset] * 2 ** 8 + this[++offset] * 2 ** 16 + last * 2 ** 24
+	);
 }
 
 function readInt32LE(offset = 0) {
-  const first = this[offset];
-  const last = this[offset + 3];
-  if (first === undefined || last === undefined) {
-    throw new RangeError('Index out of range');
-  }
+	const first = this[offset];
+	const last = this[offset + 3];
+	if (first === undefined || last === undefined) {
+		throw new RangeError('Index out of range');
+	}
 
-  return (
-    first + this[++offset] * 2 ** 8 + this[++offset] * 2 ** 16 + (last << 24)
-  );
+	return (
+		first + this[++offset] * 2 ** 8 + this[++offset] * 2 ** 16 + (last << 24)
+	);
 }
 
 function readDoubleLE(offset = 0) {
-  const first = this[offset];
-  const last = this[offset + 7];
-  if (first === undefined || last === undefined) {
-    throw new RangeError('Index out of range');
-  }
+	const first = this[offset];
+	const last = this[offset + 7];
+	if (first === undefined || last === undefined) {
+		throw new RangeError('Index out of range');
+	}
 
-  uInt8Float64Array[7] = first;
-  uInt8Float64Array[6] = this[++offset];
-  uInt8Float64Array[5] = this[++offset];
-  uInt8Float64Array[4] = this[++offset];
-  uInt8Float64Array[3] = this[++offset];
-  uInt8Float64Array[2] = this[++offset];
-  uInt8Float64Array[1] = this[++offset];
-  uInt8Float64Array[0] = last;
-  return float64Array[0];
+	uInt8Float64Array[7] = first;
+	uInt8Float64Array[6] = this[++offset];
+	uInt8Float64Array[5] = this[++offset];
+	uInt8Float64Array[4] = this[++offset];
+	uInt8Float64Array[3] = this[++offset];
+	uInt8Float64Array[2] = this[++offset];
+	uInt8Float64Array[1] = this[++offset];
+	uInt8Float64Array[0] = last;
+	return float64Array[0];
 }
 
 function toString() {
-  return new TextDecoder().decode(this);
+	return new TextDecoder().decode(this);
 }
 
-function toHex(targetLength = 0) {
-  return [...this]
-      .map((b) => b.toString(16).padStart(targetLength, '0'))
-      .join(' ');
+function toHex(separator = '') {
+	return [...this].map((b) => b.toString(16).padStart(2, '0')).join(separator);
 }
 
 function toBase64() {
-  return btoa(this.toString());
+	return btoa(this.toString());
 }
 
 /**
@@ -141,12 +139,12 @@ function toBase64() {
  * @api private
  */
 function addUint8ArrayMethods(prototype) {
-  prototype.readInt32LE = readInt32LE;
-  prototype.readUInt32LE = readUInt32LE;
-  prototype.readDoubleLE = readDoubleLE;
-  prototype.toString = toString;
-  prototype.toHex = toHex;
-  prototype.toBase64 = toBase64;
+	prototype.readInt32LE = readInt32LE;
+	prototype.readUInt32LE = readUInt32LE;
+	prototype.readDoubleLE = readDoubleLE;
+	prototype.toString = toString;
+	prototype.toHex = toHex;
+	prototype.toBase64 = toBase64;
 }
 
 /**
@@ -157,108 +155,107 @@ function addUint8ArrayMethods(prototype) {
  * @returns {boolean} - true if the file is an FTDC file.
  */
 async function readFTDCFile(uri) {
-  addUint8ArrayMethods(Uint8Array.prototype);
+	addUint8ArrayMethods(Uint8Array.prototype);
 
-  let buffer;
+	let buffer;
 
-  try {
-    const response = await fetch(uri);
-    const arrayBuffer = await response.arrayBuffer();
-    buffer = new Uint8Array(arrayBuffer);
-  } catch (error) {
-    throw new Error('Failed to fetch file', error);
-  }
+	try {
+		const response = await fetch(uri);
+		const arrayBuffer = await response.arrayBuffer();
+		buffer = new Uint8Array(arrayBuffer);
+	} catch (error) {
+		throw new Error('Failed to fetch file', error);
+	}
 
-  const size = buffer.readUInt32LE(0);
+	const size = buffer.readUInt32LE(0);
 
-  assert.equal(buffer instanceof Uint8Array, true, 'Invalid buffer type');
-  assert.equal(size, 75, 'Invalid BSON size');
+	assert.equal(buffer instanceof Uint8Array, true, 'Invalid buffer type');
+	assert.equal(size, 75, 'Invalid BSON size');
 
-  if (size < 5) {
-    throw new BSONError('Invalid BSON size');
-  }
-  if (buffer[size - 1] !== 0) {
-    throw new BSONError('Invalid BSON terminator');
-  }
+	if (size < 5) {
+		throw new BSONError('Invalid BSON size');
+	}
+	if (buffer[size - 1] !== 0) {
+		throw new BSONError('Invalid BSON terminator');
+	}
 
-  let index = 4;
+	let index = 4;
 
-  // store the deserialized BSON document
-  const document = {};
+	// store the deserialized BSON document
+	const document = {};
 
-  while (index < buffer.length) {
-    const elementType = buffer[index++];
+	while (index < buffer.length) {
+		const elementType = buffer[index++];
 
-    if (elementType === 0) {
-      continue;
-    }
+		if (elementType === 0) {
+			continue;
+		}
 
-    const keyName = buffer.subarray(
-        index,
-        indexAfterCString(buffer, index) - 1,
-    );
-    document[keyName.toString()] = null;
+		const keyName = buffer.subarray(
+			index,
+			indexAfterCString(buffer, index) - 1
+		);
+		document[keyName.toString()] = null;
 
-    index = indexAfterCString(buffer, index);
+		index = indexAfterCString(buffer, index);
 
-    switch (elementType) {
-      case BSON.DATA_NUMBER:
-        const number = buffer.readDoubleLE(index);
-        index += 8;
-        break;
-      case BSON.DATA_STRING:
-        const result = strings(buffer.subarray(index));
-        if (result.size > 0 && result.output.includes('getCmdLineOpts')) {
-          return true;
-        }
-        index += result.size;
-        break;
-      case BSON.DATA_OBJECT:
-        // TODO: read size of new document
-        break;
-      case BSON.DATA_ARRAY:
-      case BSON.DATA_BINARY:
-      case BSON.DATA_UNDEFINED:
-      case BSON.DATA_OBJECTID:
-        document[keyName.toString()] = readObjectId(buffer, index);
-        console.log(document); // { _id: 'ObjectId(67 e7 79 9 37 a4 c6 4c 59 96 36 e9)' }
-        index += 12;
-        break;
-      case BSON.DATA_BOOLEAN:
-        const bool = buffer[index] === 0 ? false : true;
-        index += 1;
-        break;
-      case BSON.DATA_DATE:
-        const data = buffer.subarray(index, index + 8);
-        const bigInt = data.readBigInt64LE(0);
-        const date = new Date(Number(bigInt));
-        index += 8;
-        break;
-      case BSON.DATA_NULL:
-      case BSON.DATA_REGEXP:
-      case BSON.DATA_DBPOINTER:
-      case BSON.DATA_CODE:
-      case BSON.DATA_SYMBOL:
-      case BSON.DATA_CODE_W_SCOPE:
-      case BSON.DATA_INT32:
-        const int32 = buffer.readInt32LE(index);
-        index += 4;
-        break;
-      case BSON.DATA_TIMESTAMP:
-        break;
-      case BSON.DATA_LONG:
-      case BSON.DATA_DECIMAL128:
-      case BSON.DATA_MIN_KEY:
-      case BSON.DATA_MAX_KEY:
-      default:
-        break;
-    }
-  }
+		switch (elementType) {
+			case BSON.DATA_NUMBER:
+				const number = buffer.readDoubleLE(index);
+				index += 8;
+				break;
+			case BSON.DATA_STRING:
+				const result = strings(buffer.subarray(index));
+				if (result.size > 0 && result.output.includes('getCmdLineOpts')) {
+					return true;
+				}
+				index += result.size;
+				break;
+			case BSON.DATA_OBJECT:
+				// TODO: read size of new document
+				break;
+			case BSON.DATA_ARRAY:
+			case BSON.DATA_BINARY:
+			case BSON.DATA_UNDEFINED:
+			case BSON.DATA_OBJECTID:
+				document[keyName.toString()] = readObjectId(buffer, index);
+				index += 12;
+				break;
+			case BSON.DATA_BOOLEAN:
+				const bool = buffer[index] === 0 ? false : true;
+				index += 1;
+				break;
+			case BSON.DATA_DATE:
+				const data = buffer.subarray(index, index + 8);
+				const bigInt = data.readBigInt64LE(0);
+				const date = new Date(Number(bigInt));
+				index += 8;
+				break;
+			case BSON.DATA_NULL:
+			case BSON.DATA_REGEXP:
+			case BSON.DATA_DBPOINTER:
+			case BSON.DATA_CODE:
+			case BSON.DATA_SYMBOL:
+			case BSON.DATA_CODE_W_SCOPE:
+			case BSON.DATA_INT32:
+				const int32 = buffer.readInt32LE(index);
+				index += 4;
+				break;
+			case BSON.DATA_TIMESTAMP:
+				break;
+			case BSON.DATA_LONG:
+			case BSON.DATA_DECIMAL128:
+			case BSON.DATA_MIN_KEY:
+			case BSON.DATA_MAX_KEY:
+			default:
+				break;
+		}
+	}
 
-  return false;
+	return false;
 }
 
 const result = readFTDCFile(
-    'https://github.com/b1ron/ftdc/raw/refs/heads/master/files/foo.bson',
+	'https://github.com/b1ron/ftdc/raw/refs/heads/master/files/foo.bson'
 );
 console.log(result === true ? 'FTDC file' : 'Not an FTDC file');
