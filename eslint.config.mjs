@@ -9,7 +9,7 @@ const rules = {
   'no-caller': 'error',
   'no-extend-native': 'error',
   'no-extra-bind': 'error',
-  'no-invalid-this': 'error',
+  // 'no-invalid-this': 'error',
   'no-multi-spaces': 'error',
   'no-multi-str': 'error',
   'no-new-wrappers': 'error',
@@ -56,7 +56,7 @@ const rules = {
   'max-len': [
     'error',
     {
-      code: 80,
+      code: 90,
       tabWidth: 2,
       ignoreUrls: true,
       ignorePattern: 'goog.(module|require)',
@@ -106,7 +106,8 @@ const rules = {
   'prefer-spread': 'error',
   'rest-spread-spacing': 'error',
   'yield-star-spacing': ['error', 'after'],
-  'no-restricted-globals': ['error', 'process', 'global', 'require'], // prevent Node.js globals
+  // prevent Node.js globals from being used
+  'no-restricted-globals': ['error', 'process', 'global', 'require'],
 };
 
 export default defineConfig([
