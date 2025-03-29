@@ -118,10 +118,10 @@ async function readFTDCFile(uri) {
 		throw new Error('Failed to fetch file');
 	}
 
-	assert.equal(buffer instanceof Uint8Array, true, 'Invalid buffer type');
-	assert.equal(buffer.readUInt32LE(0), 12261, 'Invalid BSON size');
-
 	const size = buffer.readUInt32LE(0);
+
+	assert.equal(buffer instanceof Uint8Array, true, 'Invalid buffer type');
+	assert.equal(size, 12261, 'Invalid BSON size');
 
 	if (size < 5) {
 		throw new BSONError('Invalid BSON size');
@@ -160,7 +160,7 @@ async function readFTDCFile(uri) {
 				index += result.size;
 				break;
 			case BSON.DATA_OBJECT:
-				// TODO: read size of new BSON document
+				// TODO: read size of new document
 				break;
 			case BSON.DATA_ARRAY:
 			case BSON.DATA_BINARY:
@@ -204,6 +204,6 @@ async function readFTDCFile(uri) {
 }
 
 const result = readFTDCFile(
-	'https://github.com/b1ron/files/raw/refs/heads/main/metrics.2021-03-15T02-21-47Z-00000'
+	'https://github.com/b1ron/ftdc/raw/refs/heads/master/files/metrics.2021-03-15T02-21-47Z-00000'
 );
 console.log(result === true ? 'FTDC file' : 'Not an FTDC file');
