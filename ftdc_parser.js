@@ -201,7 +201,6 @@ async function readFTDCFile(uri) {
 	return false;
 }
 
-// file size: 12261 bytes
 const result = readFTDCFile(
 	'https://github.com/b1ron/files/raw/refs/heads/main/metrics.2021-03-15T02-21-47Z-00000'
 );
