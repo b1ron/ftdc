@@ -1,8 +1,8 @@
 {
-  "name": "mime",
+  "name": "parser",
   "version": "1.0.0",
   "description": "",
-  "main": "mime.js",
+  "main": "parser.js",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
