@@ -42,7 +42,6 @@ function indexAfterCString(buffer, offset) {
  * @param {Buffer} buffer - The buffer to extract strings from.
  * @param {number} minLength - The minimum length of a string to be extracted.
  * @returns {object} - The extracted strings and the total size in bytes.
- *
  */
 function strings(buffer, minLength = 4) {
   const printableChars = /^[\x20-\x7E]+$/; // ASCII printable characters
