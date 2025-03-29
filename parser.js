@@ -159,7 +159,7 @@ async function readFTDCFile(uri) {
 				index += result.size;
 				break;
 			case BSON.DATA_OBJECT:
-				// TODO: do we need to re-read the size of this new object?
+				// TODO: read size of new BSON document
 				break;
 			case BSON.DATA_ARRAY:
 			case BSON.DATA_BINARY:
