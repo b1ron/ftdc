@@ -64,6 +64,7 @@ function strings(buffer, minLength = 4) {
 			currentString = '';
 		}
 	}
+	// handle any remaining string at the end of the buffer
 	if (currentString.length >= minLength) {
 		result.push(currentString);
 		size += Buffer.byteLength(currentString, 'utf8');
