@@ -185,7 +185,6 @@ async function readFTDCFile(uri) {
 			indexAfterCString(buffer, index) - 1,
 		);
 		document[keyName.toString()] = null;
-		return;
 
 		index = indexAfterCString(buffer, index);
 
