@@ -57,7 +57,7 @@ const rules = {
     'error',
     {
       code: 90,
-      tabWidth: 2,
+      tabWidth: 1,
       ignoreUrls: true,
       ignorePattern: 'goog.(module|require)',
     },
