@@ -140,7 +140,7 @@ function readBigInt64LE(offset = 0) {
 		this[offset + 4] +
 		this[offset + 5] * 2 ** 8 +
 		this[offset + 6] * 2 ** 16 +
-		(last << 24); // Overflow
+		(last << 24); // overflow is expected here
   return (
     (BigInt(val) << 32n) +
 		BigInt(
