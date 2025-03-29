@@ -251,14 +251,12 @@ async function readFTDCFile(uri) {
       case BSON.DATA_STRING:
         const string = readString(buffer, index);
         item.document[keyName] = string;
-        console.log(string.length);
         index += 4 + string.length;
         break;
       case BSON.DATA_OBJECT:
         const size = buffer.readUInt32LE(index);
         const document = buffer.subarray(index, index + size);
         item.document[keyName] = document;
-        console.log(item.document);
         index += 4;
         break;
       case BSON.DATA_ARRAY:
@@ -276,7 +274,7 @@ async function readFTDCFile(uri) {
       case BSON.DATA_DATE:
         const data = buffer.subarray(index, index + 8);
         const bigInt = data.readBigInt64LE(0);
-        item.document[keyName] = date;
+        item.document[keyName] = new Date(Number(bigInt));
         index += 8;
         break;
       case BSON.DATA_NULL:
