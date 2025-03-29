@@ -105,7 +105,7 @@ function addTypedArrayMethods(prototype) {
  * @returns {boolean} - true if the file is an FTDC file.
  */
 async function readFTDCFile(uri) {
-	Uint8Array.prototype.readUInt32LE = readUInt32LE;
+	addTypedArrayMethods(Uint8Array.prototype);
 
 	let buffer;
 
