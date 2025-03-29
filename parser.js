@@ -91,9 +91,9 @@ function readUInt32LE(offset = 0) {
 
   return (
     first +
-		this[++offset] * 2 ** 8 +
-		this[++offset] * 2 ** 16 +
-		last * 2 ** 24
+    this[++offset] * 2 ** 8 +
+    this[++offset] * 2 ** 16 +
+    last * 2 ** 24
   );
 }
 
@@ -106,9 +106,9 @@ function readInt32LE(offset = 0) {
 
   return (
     first +
-		this[++offset] * 2 ** 8 +
-		this[++offset] * 2 ** 16 +
-		(last << 24)
+    this[++offset] * 2 ** 8 +
+    this[++offset] * 2 ** 16 +
+    (last << 24)
   );
 }
 
@@ -143,18 +143,18 @@ function readBigInt64LE(offset = 0) {
   }
 
   const val =
-		this[offset + 4] +
-		this[offset + 5] * 2 ** 8 +
-		this[offset + 6] * 2 ** 16 +
-		(last << 24); // overflow is expected here
+    this[offset + 4] +
+    this[offset + 5] * 2 ** 8 +
+    this[offset + 6] * 2 ** 16 +
+    (last << 24); // overflow is expected here
   return (
     (BigInt(val) << 32n) +
-		BigInt(
-		    first +
-				this[++offset] * 2 ** 8 +
-				this[++offset] * 2 ** 16 +
-				this[++offset] * 2 ** 24,
-		)
+    BigInt(
+        first +
+        this[++offset] * 2 ** 8 +
+        this[++offset] * 2 ** 16 +
+        this[++offset] * 2 ** 24,
+    )
   );
 }
 
