@@ -3,9 +3,7 @@
 
 import * as assert from 'assert';
 import * as BSON from './constants.js';
-import {sep} from 'path';
 
-const uInt8Float32Array = new Uint8Array(4);
 const uInt8Float64Array = new Uint8Array(8);
 
 /**
@@ -117,7 +115,7 @@ function readDoubleLE(offset = 0) {
   uInt8Float64Array[2] = this[++offset];
   uInt8Float64Array[1] = this[++offset];
   uInt8Float64Array[0] = last;
-  return float64Array[0];
+  return float64Array[0]; // TODO: store in float64Array
 }
 
 function toString() {
@@ -191,11 +189,10 @@ async function readFTDCFile(uri) {
       continue;
     }
 
-    const keyName = buffer.subarray(
-        index,
-        indexAfterCString(buffer, index) - 1,
-    );
-    document[keyName.toString()] = null;
+    const keyName = buffer
+        .subarray(index, indexAfterCString(buffer, index) - 1)
+        .toString();
+    document[keyName] = null;
 
     index = indexAfterCString(buffer, index);
 
@@ -218,7 +215,7 @@ async function readFTDCFile(uri) {
       case BSON.DATA_BINARY:
       case BSON.DATA_UNDEFINED:
       case BSON.DATA_OBJECTID:
-        document[keyName.toString()] = readObjectId(buffer, index);
+        document[keyName] = readObjectId(buffer, index);
         index += 12;
         break;
       case BSON.DATA_BOOLEAN:
