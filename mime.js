@@ -6,44 +6,6 @@ import * as BSON from './constants.js';
 import * as fs from 'fs';
 
 /**
- * ExtendedArrayBuffer class to provide additional functionality for reading
- * BSON files.
- *
- * @class
- * @extends ArrayBuffer
- * @param {Buffer} buffer - The buffer to extend.
- * @returns {ExtendedArrayBuffer} - The extended buffer.
- *
- * TODO: more methods to be added as needed.
- */
-class ExtendedArrayBuffer extends ArrayBuffer {
-	constructor(buffer) {
-		super(buffer);
-		this.buffer = buffer.buffer.slice(
-			buffer.byteOffset,
-			buffer.byteOffset + buffer.byteLength
-		);
-		this.view = new DataView(this.buffer);
-	}
-
-	readUInt32LE(offset) {
-		return this.view.getUint32(offset, true);
-	}
-
-	readBigInt64LE(offset) {
-		return this.view.getBigInt64(offset, true);
-	}
-
-	byteLength() {
-		return this.buffer.byteLength;
-	}
-
-	getRawBuffer() {
-		return this.buffer;
-	}
-}
-
-/**
  * Error class for BSON parsing errors.
  *
  * @class
@@ -107,20 +69,55 @@ function strings(buffer, minLength = 4) {
 	return { output: result.join(' '), size };
 }
 
+function readUInt32LE(offset = 0) {
+	const first = this[offset];
+	const last = this[offset + 3];
+	if (first === undefined || last === undefined)
+		throw new RangeError('Index out of range');
+
+	return (
+		first + this[++offset] * 2 ** 8 + this[++offset] * 2 ** 16 + last * 2 ** 24
+	);
+}
+
+function toHex() {
+	return [...this].map((b) => b.toString(16).padStart(2, '0')).join(' ');
+}
+
+/**
+ * Adds methods to the Uint8Array prototype to read and write typed arrays.
+ * @returns {void}
+ * @api private
+ */
+function addTypedArrayMethods(prototype) {
+	prototype.readUInt32LE = readUInt32LE;
+	prototype.toHex = toHex;
+}
+
 /**
  * Reads a BSON file to quicky determine if it's an FTDC file by terminating
  * early upon finding specific fields or keywords.
  *
- * @param {string} filename - The file to read.
- * @returns {boolean} true if the file is an FTDC file.
+ * @param {string} uri - The URI of the file to read.
+ * @returns {boolean} - true if the file is an FTDC file.
  */
-function readFTDCFile(filename) {
-	let buffer = fs.readFileSync(filename);
-	const size = buffer.readUInt32LE(0);
-	buffer = buffer.subarray(0, size);
+async function readFTDCFile(uri) {
+	Uint8Array.prototype.readUInt32LE = readUInt32LE;
 
-	let arrayBuffer = new ExtendedArrayBuffer(buffer);
-	assert.equal(arrayBuffer instanceof ArrayBuffer, true);
+	let buffer;
+
+	try {
+		const response = await fetch(uri);
+		const arrayBuffer = await response.arrayBuffer();
+		buffer = new Uint8Array(arrayBuffer);
+	} catch (error) {
+		throw new Error('Failed to fetch file');
+	}
+
+	assert.equal(buffer instanceof Uint8Array, true, 'Invalid buffer type');
+	assert.equal(buffer.readUInt32LE(0), 12261, 'Invalid BSON size');
+
+	const size = buffer.readUInt32LE(0);
 
 	if (size < 5) {
 		throw new BSONError('Invalid BSON size');
@@ -202,5 +199,8 @@ function readFTDCFile(filename) {
 	return false;
 }
 
-const result = readFTDCFile('files/metrics.2021-03-15T02-21-47Z-00000');
+// file size: 12261 bytes
+const result = readFTDCFile(
+	'https://github.com/b1ron/files/raw/refs/heads/main/metrics.2021-03-15T02-21-47Z-00000'
+);
 console.log(result === true ? 'FTDC file' : 'Not an FTDC file');
