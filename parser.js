@@ -72,6 +72,12 @@ function strings(buffer, minLength = 4) {
   return {output: result.join(' '), size};
 }
 
+// FIXME: WIP hack
+function readObjectId(buffer, offset) {
+  const value = buffer.slice(offset, offset + 12);
+  return `ObjectId(${value.toHex(0)})`;
+}
+
 function readUInt32LE(offset = 0) {
   const first = this[offset];
   const last = this[offset + 3];
@@ -118,8 +124,14 @@ function toString() {
   return new TextDecoder().decode(this);
 }
 
-function toHex() {
-  return [...this].map((b) => b.toString(16).padStart(2, '0')).join(' ');
+function toHex(targetLength = 0) {
+  return [...this]
+      .map((b) => b.toString(16).padStart(targetLength, '0'))
+      .join(' ');
+}
+
+function toBase64() {
+  return btoa(this.toString());
 }
 
 /**
@@ -134,6 +146,7 @@ function addUint8ArrayMethods(prototype) {
   prototype.readDoubleLE = readDoubleLE;
   prototype.toString = toString;
   prototype.toHex = toHex;
+  prototype.toBase64 = toBase64;
 }
 
 /**
@@ -170,7 +183,9 @@ async function readFTDCFile(uri) {
 
   let index = 4;
 
+  // store the deserialized BSON document
   const document = {};
+
   while (index < buffer.length) {
     const elementType = buffer[index++];
 
@@ -205,6 +220,10 @@ async function readFTDCFile(uri) {
       case BSON.DATA_BINARY:
       case BSON.DATA_UNDEFINED:
       case BSON.DATA_OBJECTID:
+        document[keyName.toString()] = readObjectId(buffer, index);
+        console.log(document); // { _id: 'ObjectId(67 e7 79 9 37 a4 c6 4c 59 96 36 e9)' }
+        index += 12;
+        break;
       case BSON.DATA_BOOLEAN:
         const bool = buffer[index] === 0 ? false : true;
         index += 1;
