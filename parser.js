@@ -46,6 +46,7 @@ function indexAfterCString(buffer, offset) {
  */
 function strings(buffer, minLength = 4) {
   const printableChars = /^[\x20-\x7E]+$/; // ASCII printable characters
+
   const result = [];
   let currentString = '';
   let size = 0;
