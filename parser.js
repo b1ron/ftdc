@@ -87,7 +87,8 @@ function toHex() {
 }
 
 /**
- * Adds methods to the Uint8Array prototype to read and write typed arrays.
+ * Adds methods to the Uint8Array prototype.
+ * Uint8Array is the most suitable TypedArray for working with arbitrary binary data.
  * @returns {void}
  * @api private
  */
