@@ -71,7 +71,7 @@ function strings(buffer, minLength = 4) {
 		result.push(currentString);
 		size += Buffer.byteLength(currentString, 'utf8');
 	}
-	return { output: result.join(' '), size };
+	return {output: result.join(' '), size};
 }
 
 function readUInt32LE(offset = 0) {
@@ -182,7 +182,7 @@ async function readFTDCFile(uri) {
 
 		const keyName = buffer.subarray(
 			index,
-			indexAfterCString(buffer, index) - 1
+			indexAfterCString(buffer, index) - 1,
 		);
 		document[keyName.toString()] = null;
 		return;
@@ -243,6 +243,6 @@ async function readFTDCFile(uri) {
 }
 
 const result = readFTDCFile(
-	'https://github.com/b1ron/ftdc/raw/refs/heads/master/files/foo.bson'
+	'https://github.com/b1ron/ftdc/raw/refs/heads/master/files/foo.bson',
 );
 console.log(result === true ? 'FTDC file' : 'Not an FTDC file');
