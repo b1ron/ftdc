@@ -228,7 +228,7 @@ async function readFTDCFile(uri) {
   const element = {
     size: 0,
     document: {},
-    level: 0, // nesting level of the current element, limited by maxAllowableDepth
+    level: 0, // nesting level of the current object, limited by maxAllowableDepth
   };
 
   const stack = [];
@@ -265,6 +265,7 @@ async function readFTDCFile(uri) {
         const size = buffer.readUInt32LE(index);
         const document = buffer.subarray(index, index + size);
         item.document[keyName] = document;
+        stack.push({size, document, level: item.level + 1});
         index += 4;
         break;
       case BSON.DATA_ARRAY:
