@@ -196,7 +196,8 @@ function addUint8ArrayMethods(prototype) {
  * @param {string} uri - The URI of the file to fetch.
  * @param {(uri: string) => Promise<ArrayBuffer>} callback
  * - The async function to fetch the file.
- * @returns {Promise<boolean>} Resolves true if the file is an FTDC file, otherwise false.
+ * @returns {Promise<boolean>} Resolves true if the file is an FTDC file,
+ * otherwise false.
  */
 async function readFTDCFile(uri, callback) {
   let buffer;
@@ -232,7 +233,8 @@ async function readFTDCFile(uri, callback) {
   const element = {
     size: 0,
     document: {},
-    level: 0, // nesting level of the current object, limited by maxAllowableDepth
+    level: 0, // nesting level of the current object
+    maxAllowableDepth: maxAllowableDepth,
   };
 
   const stack = [];
@@ -253,6 +255,12 @@ async function readFTDCFile(uri, callback) {
     item.document[keyName] = null;
 
     index = indexAfterCString(buffer, index);
+
+    if (item.level >= maxAllowableDepth) {
+      throw new Error(
+          `Exceeds the limit of ${maxAllowableDepth} levels of nesting`,
+      );
+    }
 
     switch (elementType) {
       case BSON.DATA_NUMBER:
