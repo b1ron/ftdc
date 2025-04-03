@@ -1,4 +1,4 @@
-// FTDC quick parser
+// BSON parser for FTDC files
 // Archive File Format - https://github.com/mongodb/mongo/blob/0a68308f0d39a928ed551f285ba72ca560c38576/src/mongo/db/ftdc/README.md#archive-file-format
 
 import * as assert from 'assert';
@@ -78,7 +78,8 @@ function readObjectId(buffer, offset) {
 
 function readString(buffer, offset) {
   const length = buffer.readUInt32LE(offset);
-  const value = buffer.slice(offset + 4, offset + 4 + length - 1); // -1 to exclude trailing null byte
+  const value = buffer.slice(
+      offset + 4, offset + 4 + length - 1); // -1 to exclude trailing null byte
   return value.toString();
 }
 
@@ -189,24 +190,26 @@ function addUint8ArrayMethods(prototype) {
 }
 
 /**
- * Reads a BSON file to quicky determine if it's an FTDC file by terminating
- * early upon finding specific fields or keywords.
+ * BSON parser for FTDC files.
  *
- * @param {string} uri - The URI of the file to read.
- * @returns {boolean} - true if the file is an FTDC file.
+ * @param {string} uri - The URI of the file to fetch.
+ * @param {(uri: string) => Promise<ArrayBuffer>} callback
+ * - The async function to fetch the file.
+ * @returns {Promise<boolean>} Resolves true if the file is an FTDC file, otherwise false.
  */
-async function readFTDCFile(uri) {
-  addUint8ArrayMethods(Uint8Array.prototype);
-
+async function readFTDCFile(uri, callback) {
   let buffer;
-
   try {
-    const response = await fetch(uri);
-    const arrayBuffer = await response.arrayBuffer();
-    buffer = new Uint8Array(arrayBuffer);
+    const response = await callback(uri);
+    if (!(response instanceof ArrayBuffer)) {
+      throw new Error('callback must return an ArrayBuffer');
+    }
+    buffer = new Uint8Array(response);
   } catch (error) {
-    throw new Error('Failed to fetch file', error);
+    throw error;
   }
+
+  addUint8ArrayMethods(Uint8Array.prototype);
 
   const size = buffer.readUInt32LE(0);
 
@@ -311,7 +314,16 @@ async function readFTDCFile(uri) {
   return false;
 }
 
+async function fetchFile(uri) {
+  const response = await fetch(uri);
+  if (!response.ok) {
+    throw new Error('Failed to fetch: ${response.statusText}');
+  }
+  return response.arrayBuffer();
+}
+
 const result = readFTDCFile(
     'https://github.com/b1ron/ftdc/raw/refs/heads/master/files/foo.bson',
+    fetchFile,
 );
 console.log(result === true ? 'FTDC file' : 'Not an FTDC file');
