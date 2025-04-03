@@ -234,7 +234,6 @@ async function readFTDCFile(uri, callback) {
     size: 0,
     document: {},
     level: 0, // nesting level of the current object
-    maxAllowableDepth: maxAllowableDepth,
   };
 
   const stack = [];
