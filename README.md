@@ -1,1 +1,1 @@
-## FTDC quick parser for content type detection
+## BSON parser for FTDC files
