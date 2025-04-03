@@ -190,7 +190,8 @@ function addUint8ArrayMethods(prototype) {
 }
 
 /**
- * BSON parser for FTDC files.
+ * Reads a BSON file to determine if it's an FTDC file.
+ * WIP: It parses and deserializes the file.
  *
  * @param {string} uri - The URI of the file to fetch.
  * @param {(uri: string) => Promise<ArrayBuffer>} callback
