@@ -23,7 +23,6 @@ class BSONError extends Error {
  * Reads a buffer and returns the index at the end of a C string.
  * It purposely returns the index after the null terminator and not the actual string.
  *
- * FIXME: Buffer should be a Uint8Array, needs byteLength method.
  * @param {Buffer} buffer - The buffer to read.
  * @param {number} offset - The starting position for the search.
  * @returns {number} - The index after the null terminator in the C string.
@@ -124,14 +123,14 @@ function readDoubleLE(offset = 0) {
   const uInt8Float64Array = new Uint8Array(buffer);
   const float64Array = new Float64Array(buffer);
 
-  uInt8Float64Array[7] = first;
-  uInt8Float64Array[6] = this[++offset];
-  uInt8Float64Array[5] = this[++offset];
-  uInt8Float64Array[4] = this[++offset];
-  uInt8Float64Array[3] = this[++offset];
-  uInt8Float64Array[2] = this[++offset];
+  uInt8Float64Array[0] = first;
   uInt8Float64Array[1] = this[++offset];
-  uInt8Float64Array[0] = last;
+  uInt8Float64Array[2] = this[++offset];
+  uInt8Float64Array[3] = this[++offset];
+  uInt8Float64Array[4] = this[++offset];
+  uInt8Float64Array[5] = this[++offset];
+  uInt8Float64Array[6] = this[++offset];
+  uInt8Float64Array[7] = last;
 
   return float64Array[0];
 }
@@ -215,8 +214,9 @@ async function readFTDCFile(uri, callback) {
 
   const size = buffer.readUInt32LE(0);
 
+  // { "_id" : ObjectId("67f3e198b2b0350e5a5eb6db"), "a" : 1, "b" : 1.1, "c" : 3.14159 }
+
   assert.equal(buffer instanceof Uint8Array, true, 'Invalid buffer type');
-  assert.equal(size, 75, 'Invalid BSON size');
 
   if (size < 5) {
     throw new BSONError('Invalid BSON size');
@@ -236,11 +236,19 @@ async function readFTDCFile(uri, callback) {
     level: 0, // nesting level of the current object
   };
 
+  let item;
+  let stackItem = true;
   const stack = [];
   stack.push(element);
 
-  const item = stack.pop(); // initially pop first element from stack
-  while (index < buffer.length || stack.length >= 0) {
+  const object = {};
+
+  while (index < buffer.length || stack.length > 0) {
+    if (stackItem) {
+      item = stack.pop();
+      stackItem = false;
+    }
+
     const elementType = buffer[index++];
 
     if (elementType === 0) {
@@ -261,40 +269,53 @@ async function readFTDCFile(uri, callback) {
       );
     }
 
+    // for (const [key, value] of Object.entries(item.document)) {
+    //   console.log(key, value);
+    // }
+
     switch (elementType) {
       case BSON.DATA_NUMBER:
         const number = buffer.readDoubleLE(index);
         item.document[keyName] = number;
+        object[keyName] = number;
         index += 8;
         break;
       case BSON.DATA_STRING:
         const string = readString(buffer, index);
         item.document[keyName] = string;
+        object[keyName] = string;
         index += 4 + string.length;
         break;
       case BSON.DATA_OBJECT:
         const size = buffer.readUInt32LE(index);
         const document = buffer.subarray(index, index + size);
-        item.document[keyName] = document;
+        item.document[keyName] = {};
+        object[keyName] = {};
         stack.push({size, document, level: item.level + 1});
+        stackItem = true;
         index += 4;
         break;
       case BSON.DATA_ARRAY:
       case BSON.DATA_BINARY:
       case BSON.DATA_UNDEFINED:
       case BSON.DATA_OBJECTID:
-        item.document[keyName] = readObjectId(buffer, index);
+        const _id = readObjectId(buffer, index);
+        item.document[keyName] = _id;
+        object[keyName] = _id;
         index += 12;
         break;
       case BSON.DATA_BOOLEAN:
         const bool = buffer[index] === 0 ? false : true;
         item.document[keyName] = bool;
+        object[keyName] = bool;
         index += 1;
         break;
       case BSON.DATA_DATE:
         const data = buffer.subarray(index, index + 8);
         const bigInt = data.readBigInt64LE(0);
-        item.document[keyName] = new Date(Number(bigInt));
+        const date = new Date(Number(bigInt));
+        item.document[keyName] = date;
+        object[keyName] = date;
         index += 8;
         break;
       case BSON.DATA_NULL:
@@ -306,6 +327,7 @@ async function readFTDCFile(uri, callback) {
       case BSON.DATA_INT32:
         const int32 = buffer.readInt32LE(index);
         item.document[keyName] = int32;
+        object[keyName] = int32;
         index += 4;
         break;
       case BSON.DATA_TIMESTAMP:
@@ -319,19 +341,22 @@ async function readFTDCFile(uri, callback) {
     }
   }
 
-  return false;
+  return object;
 }
 
 async function fetchFile(uri) {
-  const response = await fetch(uri);
+  const response = await fetch(uri, {
+    signal: AbortSignal.timeout(60 * 1000),
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch: ${response.statusText}');
   }
   return response.arrayBuffer();
 }
 
-const result = readFTDCFile(
-    'https://github.com/b1ron/ftdc/raw/refs/heads/master/files/foo.bson',
+const result = await readFTDCFile(
+    'https://github.com/b1ron/ftdc/raw/refs/heads/master/files/bar.bson',
     fetchFile,
 );
+console.log(result);
 console.log(result === true ? 'FTDC file' : 'Not an FTDC file');
