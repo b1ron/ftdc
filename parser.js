@@ -6,6 +6,10 @@ import * as BSON from './constants.js';
 
 const printableChars = /^[\x20-\x7E]+$/; // ASCII printable characters
 
+// temporary buffers to convert numbers
+const float64Array = new Float64Array(1);
+const uInt8Float64Array = new Uint8Array(float64Array.buffer);
+
 /**
  * Error class for BSON parsing errors.
  *
@@ -119,10 +123,6 @@ function readDoubleLE(offset = 0) {
     throw new Error('Out of range:', this.length - 8);
   }
 
-  const buffer = this.slice(offset, offset + 8);
-  const uInt8Float64Array = new Uint8Array(buffer);
-  const float64Array = new Float64Array(buffer);
-
   uInt8Float64Array[0] = first;
   uInt8Float64Array[1] = this[++offset];
   uInt8Float64Array[2] = this[++offset];
@@ -131,7 +131,6 @@ function readDoubleLE(offset = 0) {
   uInt8Float64Array[5] = this[++offset];
   uInt8Float64Array[6] = this[++offset];
   uInt8Float64Array[7] = last;
-
   return float64Array[0];
 }
 
@@ -189,14 +188,18 @@ function addUint8ArrayMethods(prototype) {
 }
 
 /**
- * Reads a BSON file to determine if it's an FTDC file.
- * WIP: It parses and deserializes the file.
+ * TODO: figure out what's the most suitable way to test if file is an FTDC file
+ * TODO: test multiple different BSON files to determine if they are valid FTDC files
+ * TODO: fix nested BSON parsing
+ *
+ * Reads a BSON file to determine if it's an FTDC file. It parses the BSON file
+ * and returns the JSON object.
  *
  * @param {string} uri - The URI of the file to fetch.
  * @param {(uri: string) => Promise<ArrayBuffer>} callback
  * - The async function to fetch the file.
- * @returns {Promise<boolean>} Resolves true if the file is an FTDC file,
- * otherwise false.
+ * @returns {{isFTDCFile: true, result: object|null}}
+ * true if the file is an FTDC file, and the parsed JSON object.
  */
 async function readFTDCFile(uri, callback) {
   let buffer;
@@ -213,8 +216,6 @@ async function readFTDCFile(uri, callback) {
   addUint8ArrayMethods(Uint8Array.prototype);
 
   const size = buffer.readUInt32LE(0);
-
-  // { "_id" : ObjectId("67f3e198b2b0350e5a5eb6db"), "a" : 1, "b" : 1.1, "c" : 3.14159 }
 
   assert.equal(buffer instanceof Uint8Array, true, 'Invalid buffer type');
 
@@ -241,6 +242,7 @@ async function readFTDCFile(uri, callback) {
   const stack = [];
   stack.push(element);
 
+  // serialized JSON to return later
   const object = {};
 
   while (index < buffer.length || stack.length > 0) {
@@ -341,7 +343,10 @@ async function readFTDCFile(uri, callback) {
     }
   }
 
-  return object;
+  return {
+    isFTDCFile: true, // TODO
+    result: object === null ? null : object,
+  };
 }
 
 async function fetchFile(uri) {
