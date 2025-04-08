@@ -86,7 +86,7 @@ function readUInt32LE(offset = 0) {
   const first = this[offset];
   const last = this[offset + 3];
   if (first === undefined || last === undefined) {
-    throw new RangeError('Index out of range');
+    throw new Error('Out of range:', this.length - 4);
   }
 
   return (
@@ -101,7 +101,7 @@ function readInt32LE(offset = 0) {
   const first = this[offset];
   const last = this[offset + 3];
   if (first === undefined || last === undefined) {
-    throw new RangeError('Index out of range');
+    throw new Error('Out of range:', this.length - 4);
   }
 
   return (
@@ -116,7 +116,7 @@ function readDoubleLE(offset = 0) {
   const first = this[offset];
   const last = this[offset + 7];
   if (first === undefined || last === undefined) {
-    throw new RangeError('Index out of range');
+    throw new Error('Out of range:', this.length - 8);
   }
 
   const buffer = this.slice(offset, offset + 8);
@@ -139,7 +139,7 @@ function readBigInt64LE(offset = 0) {
   const first = this[offset];
   const last = this[offset + 7];
   if (first === undefined || last === undefined) {
-    throw new RangeError('Index out of range');
+    throw new Error('Out of range:', this.length - 8);
   }
 
   const val =
