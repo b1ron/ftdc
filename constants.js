@@ -1,64 +1,64 @@
 // BSON Types - https://bsonspec.org/spec.html
 
 // Number BSON type
-export const DATA_NUMBER = 1;
+export const NUMBER = 1;
 
 // String BSON type
-export const DATA_STRING = 2;
+export const STRING = 2;
 
-// Object BSON type @deprecated
-export const DATA_OBJECT = 3;
+// Document BSON type
+export const DOCUMENT = 3;
 
 // Array BSON type
-export const DATA_ARRAY = 4;
+export const ARRAY = 4;
 
 // Binary BSON type
-export const DATA_BINARY = 5;
+export const BINARY = 5;
 
 // Undefined BSON type @deprecated
-export const DATA_UNDEFINED = 6;
+export const UNDEFINED = 6;
 
 // ObjectId BSON type
-export const DATA_OBJECTID = 7;
+export const OBJECTID = 7;
 
 // Boolean BSON type
-export const DATA_BOOLEAN = 8;
+export const BOOLEAN = 8;
 
 // Date BSON type
-export const DATA_DATE = 9;
+export const DATE = 9;
 
 // null BSON type
-export const DATA_NULL = 10;
+export const NULL = 10;
 
 // Regular Expression BSON type
-export const DATA_REGEXP = 11;
+export const REGEXP = 11;
 
 // DBPointer BSON type
-export const DATA_DBPOINTER = 12;
+export const DBPOINTER = 12;
 
 // JavaScript code BSON type
-export const DATA_CODE = 13;
+export const CODE = 13;
 
 // Symbol BSON type
-export const DATA_SYMBOL = 14;
+export const SYMBOL = 14;
 
 // Code with scope BSON type
-export const DATA_CODE_W_SCOPE = 15;
+export const CODE_W_SCOPE = 15;
 
 // 32 bit integer BSON type
-export const DATA_INT32 = 16;
+export const INT32 = 16;
 
 // Timestamp BSON type
-export const DATA_TIMESTAMP = 17;
+export const TIMESTAMP = 17;
 
 // Long BSON type
-export const DATA_LONG = 18;
+export const LONG = 18;
 
 // Decimal BSON type
-export const DATA_DECIMAL128 = 19;
+export const DECIMAL128 = 19;
 
 // MinKey BSON type
-export const DATA_MIN_KEY = 0xff;
+export const MIN_KEY = 0xff;
 
 // MaxKey BSON type
-export const DATA_MAX_KEY = 0x7f;
+export const MAX_KEY = 0x7f;

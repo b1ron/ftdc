@@ -4,9 +4,7 @@
 import * as assert from 'assert';
 import * as BSON from './constants.js';
 
-const printableChars = /^[\x20-\x7E]+$/; // ASCII printable characters
-
-// temporary buffers to convert numbers
+// Temporary buffers to convert doubles
 const float64Array = new Float64Array(1);
 const uInt8Float64Array = new Uint8Array(float64Array.buffer);
 
@@ -38,40 +36,6 @@ function indexAfterCString(buffer, offset) {
   }
 
   return i + 1;
-}
-
-/**
- * Extracts strings from a buffer.
- * This is a slightly altered reimplementation of the Unix strings command.
- *
- * FIXME: Buffer should be a Uint8Array, needs byteLength method.
- * @param {Buffer} buffer - The buffer to extract strings from.
- * @param {number} minLength - The minimum length of a string to be extracted.
- * @returns {object} - The extracted strings and the total size in bytes.
- */
-function strings(buffer, minLength = 4) {
-  const result = [];
-  let currentString = '';
-  let size = 0;
-  for (let i = 0; i < buffer.length; i++) {
-    const char = String.fromCharCode(buffer[i]);
-    if (printableChars.test(char)) {
-      currentString += char;
-    } else {
-      if (currentString.length >= minLength) {
-        result.push(currentString);
-        size += Buffer.byteLength(currentString, 'utf8');
-      }
-      currentString = '';
-    }
-  }
-
-  // handle any remaining string at the end of the buffer
-  if (currentString.length >= minLength) {
-    result.push(currentString);
-    size += Buffer.byteLength(currentString, 'utf8');
-  }
-  return {output: result.join(' '), size};
 }
 
 function readObjectId(buffer, offset) {
@@ -188,23 +152,17 @@ function addUint8ArrayMethods(prototype) {
 }
 
 /**
- * TODO: figure out what's the most suitable way to test if file is an FTDC file
- * TODO: test multiple different BSON files to determine if they are valid FTDC files
- * TODO: fix nested BSON parsing
- *
- * Reads a BSON file to determine if it's an FTDC file. It parses the BSON file
- * and returns the JSON object.
+ * Parses a BSON file and returns the parsed JSON object.
  *
  * @param {string} uri - The URI of the file to fetch.
- * @param {(uri: string) => Promise<ArrayBuffer>} callback
+ * @param {(uri: string) => Promise<ArrayBuffer>} fetchFile
  * - The async function to fetch the file.
- * @returns {{isFTDCFile: true, result: object|null}}
- * true if the file is an FTDC file, and the parsed JSON object.
+ * @returns The parsed JSON object.
  */
-async function readFTDCFile(uri, callback) {
+async function parseBSONFile(uri, fetchFile) {
   let buffer;
   try {
-    const response = await callback(uri);
+    const response = await fetchFile(uri);
     if (!(response instanceof ArrayBuffer)) {
       throw new Error('callback must return an ArrayBuffer');
     }
@@ -215,7 +173,8 @@ async function readFTDCFile(uri, callback) {
 
   addUint8ArrayMethods(Uint8Array.prototype);
 
-  const size = buffer.readUInt32LE(0);
+  const size = buffer.readUInt32LE();
+  let index = 4;
 
   assert.equal(buffer instanceof Uint8Array, true, 'Invalid buffer type');
 
@@ -226,127 +185,85 @@ async function readFTDCFile(uri, callback) {
     throw new BSONError('Invalid BSON terminator');
   }
 
-  let index = 4;
-
-  const maxAllowableDepth = 3;
-
-  // stack element to deserialize nested BSON documents
-  const element = {
-    size: 0,
-    document: {},
-    level: 0, // nesting level of the current object
-  };
-
-  let item;
-  let stackItem = true;
+  // stack to deserialize nested BSON documents
   const stack = [];
-  stack.push(element);
+  stack.push({size: size});
 
-  // serialized JSON to return later
-  const object = {};
+  const result = {}; // the serialized JSON object to return
+  let val;
 
-  while (index < buffer.length || stack.length > 0) {
-    if (stackItem) {
-      item = stack.pop();
-      stackItem = false;
-    }
-
+  while (index < buffer.length) {
     const elementType = buffer[index++];
 
     if (elementType === 0) {
       continue;
     }
 
-    const keyName = buffer
+    console.log(result, stack, index, stack[0].size - index);
+
+    const key = buffer
         .subarray(index, indexAfterCString(buffer, index) - 1)
         .toString();
 
-    item.document[keyName] = null;
-
     index = indexAfterCString(buffer, index);
 
-    if (item.level >= maxAllowableDepth) {
-      throw new Error(
-          `Exceeds the limit of ${maxAllowableDepth} levels of nesting`,
-      );
-    }
-
-    // for (const [key, value] of Object.entries(item.document)) {
-    //   console.log(key, value);
-    // }
-
     switch (elementType) {
-      case BSON.DATA_NUMBER:
-        const number = buffer.readDoubleLE(index);
-        item.document[keyName] = number;
-        object[keyName] = number;
+      case BSON.NUMBER:
+        val = buffer.readDoubleLE(index);
+        result[key] = val;
         index += 8;
         break;
-      case BSON.DATA_STRING:
-        const string = readString(buffer, index);
-        item.document[keyName] = string;
-        object[keyName] = string;
-        index += 4 + string.length;
+      case BSON.STRING:
+        val = readString(buffer, index);
+        result[key] = val;
+        index += 4 + val.length;
         break;
-      case BSON.DATA_OBJECT:
+      case BSON.DOCUMENT:
         const size = buffer.readUInt32LE(index);
-        const document = buffer.subarray(index, index + size);
-        item.document[keyName] = {};
-        object[keyName] = {};
-        stack.push({size, document, level: item.level + 1});
-        stackItem = true;
+        stack.push({size: size});
         index += 4;
         break;
-      case BSON.DATA_ARRAY:
-      case BSON.DATA_BINARY:
-      case BSON.DATA_UNDEFINED:
-      case BSON.DATA_OBJECTID:
-        const _id = readObjectId(buffer, index);
-        item.document[keyName] = _id;
-        object[keyName] = _id;
+      case BSON.ARRAY:
+      case BSON.BINARY:
+      case BSON.UNDEFINED:
+      case BSON.OBJECTID:
+        val = readObjectId(buffer, index);
+        result[key] = val;
         index += 12;
         break;
-      case BSON.DATA_BOOLEAN:
-        const bool = buffer[index] === 0 ? false : true;
-        item.document[keyName] = bool;
-        object[keyName] = bool;
+      case BSON.BOOLEAN:
+        val = buffer[index] === 0 ? false : true;
+        result[key] = val;
         index += 1;
         break;
-      case BSON.DATA_DATE:
+      case BSON.DATE:
         const data = buffer.subarray(index, index + 8);
-        const bigInt = data.readBigInt64LE(0);
-        const date = new Date(Number(bigInt));
-        item.document[keyName] = date;
-        object[keyName] = date;
+        val = new Date(Number(data.readBigInt64LE()));
+        result[key] = val;
         index += 8;
         break;
-      case BSON.DATA_NULL:
-      case BSON.DATA_REGEXP:
-      case BSON.DATA_DBPOINTER:
-      case BSON.DATA_CODE:
-      case BSON.DATA_SYMBOL:
-      case BSON.DATA_CODE_W_SCOPE:
-      case BSON.DATA_INT32:
-        const int32 = buffer.readInt32LE(index);
-        item.document[keyName] = int32;
-        object[keyName] = int32;
+      case BSON.NULL:
+      case BSON.REGEXP:
+      case BSON.DBPOINTER:
+      case BSON.CODE:
+      case BSON.SYMBOL:
+      case BSON.CODE_W_SCOPE:
+      case BSON.INT32:
+        val = buffer.readInt32LE(index);
+        result[key] = val;
         index += 4;
         break;
-      case BSON.DATA_TIMESTAMP:
+      case BSON.TIMESTAMP:
         break;
-      case BSON.DATA_LONG:
-      case BSON.DATA_DECIMAL128:
-      case BSON.DATA_MIN_KEY:
-      case BSON.DATA_MAX_KEY:
+      case BSON.LONG:
+      case BSON.DECIMAL128:
+      case BSON.MIN_KEY:
+      case BSON.MAX_KEY:
       default:
         break;
     }
   }
-
-  return {
-    isFTDCFile: true, // TODO
-    result: object === null ? null : object,
-  };
+  return result;
 }
 
 async function fetchFile(uri) {
@@ -359,9 +276,8 @@ async function fetchFile(uri) {
   return response.arrayBuffer();
 }
 
-const result = await readFTDCFile(
-    'https://github.com/b1ron/ftdc/raw/refs/heads/master/files/bar.bson',
+const result = await parseBSONFile(
+    'https://github.com/b1ron/ftdc/raw/refs/heads/master/files/foo.bson',
     fetchFile,
 );
 console.log(result);
-console.log(result === true ? 'FTDC file' : 'Not an FTDC file');
