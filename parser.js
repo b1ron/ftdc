@@ -1,4 +1,4 @@
-/* eslint-disable max-len */
+
 // BSON parser for FTDC files
 // Archive File Format - https://github.com/mongodb/mongo/blob/0a68308f0d39a928ed551f285ba72ca560c38576/src/mongo/db/ftdc/README.md#archive-file-format
 
@@ -91,8 +91,8 @@ async function parseBSONFile(uri, fetchFile) {
   while (index < buffer.length) {
     const elementType = buffer[index++];
 
-    // FIXME: clean this code
-    if (stack[stack.length - 1] !== undefined && stack[stack.length - 1].length === index) {
+    // check if we have reached the end of the current buffer
+    if (stack[stack.length - 1].length === index) {
       // if current is null, just pop the stack
       // this is the case for empty BSON documents and arrays
       if (stack[stack.length - 1].current === null) {
@@ -244,7 +244,7 @@ async function fetchFile(uri) {
   return response.arrayBuffer();
 }
 const result = await parseBSONFile(
-    'https://github.com/b1ron/ftdc/raw/refs/heads/master/files/f.bson',
+    'https://github.com/b1ron/ftdc/raw/refs/heads/master/files/metrics.bson',
     fetchFile,
 );
 function serializeBigInt(key, value) {
