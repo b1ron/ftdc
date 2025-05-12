@@ -1,8 +1,9 @@
+/* eslint-disable max-len */
 
 // BSON parser for FTDC files
 // Archive File Format - https://github.com/mongodb/mongo/blob/0a68308f0d39a928ed551f285ba72ca560c38576/src/mongo/db/ftdc/README.md#archive-file-format
 
-import * as constants from './constants.js';
+import * as BSON from './constants.js';
 import * as utils from './utils.js';
 
 /**
@@ -92,19 +93,19 @@ async function parseBSONFile(uri, fetchFile) {
     const elementType = buffer[index++];
 
     // check if we have reached the end of the current buffer
-    if (stack[stack.length - 1].length === index) {
-      // if current is null, just pop the stack
-      // this is the case for empty BSON documents and arrays
-      if (stack[stack.length - 1].current === null) {
-        stack.pop();
-      } else {
-        // if current is not null, pop the stack and set current to the popped value
-        // an additional pop is needed to get the parent object
+    if (stack[stack.length - 1] !== undefined && stack[stack.length - 1].length === index) {
+      // if current is not null, pop the stack and set current to the popped value
+      // an additional pop is needed to get the parent object
+      if (stack[stack.length - 1].current !== null) {
         stack.pop();
         const popped = stack.pop();
         if (popped !== undefined) {
           current = popped.current;
         }
+      } else {
+        // if current is null, just pop the stack
+        // this is the case for empty BSON documents and arrays
+        stack.pop();
       }
     }
 
@@ -122,17 +123,17 @@ async function parseBSONFile(uri, fetchFile) {
     index = indexAfterCString(buffer, index);
 
     switch (elementType) {
-      case constants.BSON_NUMBER:
+      case BSON.NUMBER:
         value = utils.readDoubleLE(buffer, index);
         append(current, key, value);
         index += 8;
         break;
-      case constants.BSON_STRING:
+      case BSON.STRING:
         value = utils.readString(buffer, index);
         append(current, key, value);
         index += 4 + value.length;
         break;
-      case constants.BSON_DOCUMENT:
+      case BSON.DOCUMENT:
         size = utils.readUInt32LE(buffer, index);
         utils.validateBuffer(buffer, size, index);
         // empty so do not update current
@@ -152,7 +153,7 @@ async function parseBSONFile(uri, fetchFile) {
         stack.push({current: current, length: size + index + 1});
         index += 4;
         break;
-      case constants.BSON_ARRAY:
+      case BSON.ARRAY:
         size = utils.readUInt32LE(buffer, index);
         utils.validateBuffer(buffer, size, index);
         // empty so do not update current
@@ -172,61 +173,61 @@ async function parseBSONFile(uri, fetchFile) {
         stack.push({current: current, length: size + index + 1});
         index += 4;
         break;
-      case constants.BSON_BINARY:
+      case BSON.BINARY:
         size = utils.readUInt32LE(buffer, index);
         // value = buffer.subarray(index, index + size)
         //     .map((b) => b.toString(16)).join('');
         append(current, key, 'BinData(...)');
         index += 4;
-      case constants.BSON_UNDEFINED:
+      case BSON.UNDEFINED:
         break;
-      case constants.BSON_OBJECTID:
+      case BSON.OBJECTID:
         value = utils.readObjectId(buffer, index);
         append(current, key, value);
         index += 12;
         break;
-      case constants.BSON_BOOLEAN:
+      case BSON.BOOLEAN:
         value = buffer[index] === 0 ? false : true;
         append(current, key, value);
         index += 1;
         break;
-      case constants.BSON_DATE:
+      case BSON.DATE:
         const data = buffer.subarray(index, index + 8);
         value = new Date(Number(utils.readBigInt64LE(data, 0)));
         append(current, key, value);
         index += 8;
         break;
-      case constants.BSON_NULL:
+      case BSON.NULL:
         value = null;
         append(current, key, value);
         break;
-      case constants.BSON_REGEXP:
-      case constants.BSON_DBPOINTER:
+      case BSON.REGEXP:
+      case BSON.DBPOINTER:
         break;
-      case constants.BSON_CODE:
-      case constants.BSON_SYMBOL:
+      case BSON.CODE:
+      case BSON.SYMBOL:
         break;
-      case constants.BSON_CODE_W_SCOPE:
+      case BSON.CODE_W_SCOPE:
         break;
-      case constants.BSON_INT32:
+      case BSON.INT32:
         value = utils.readInt32LE(buffer, index);
         append(current, key, value);
         index += 4;
         break;
-      case constants.BSON_TIMESTAMP:
+      case BSON.TIMESTAMP:
         value = utils.readBigInt64LE(buffer, index).toString();
         append(current, key, value);
         index += 8;
         break;
-      case constants.BSON_LONG:
+      case BSON.LONG:
         value = utils.readBigInt64LE(buffer, index);
         append(current, key, value);
         index += 8;
         break;
-      case constants.BSON_DECIMAL128:
+      case BSON.DECIMAL128:
         // TODO: handle decimal128
-      case constants.BSON_MIN_KEY:
-      case constants.BSON_MAX_KEY:
+      case BSON.MIN_KEY:
+      case BSON.MAX_KEY:
       default:
         break;
     }
