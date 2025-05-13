@@ -69,6 +69,7 @@ async function parseBSONFile(uri, fetchFile) {
   addUint8ArrayMethods(Uint8Array.prototype);
 
   let size = utils.readUInt32LE(buffer);
+  const totalSize = size;
   utils.checkBuffer(buffer, size);
 
   let key;
@@ -120,10 +121,6 @@ async function parseBSONFile(uri, fetchFile) {
         break;
       case BSON.DOCUMENT:
         size = utils.readUInt32LE(buffer, index);
-        if (buffer[size + index - 1] === undefined) { // FIXME
-          console.log(key, value);
-          return object;
-        }
         utils.checkBuffer(buffer, size, index);
 
         st.push({currentObj, size: size + index});
@@ -138,7 +135,6 @@ async function parseBSONFile(uri, fetchFile) {
         break;
       case BSON.ARRAY:
         size = utils.readUInt32LE(buffer, index);
-        if (buffer[size + index - 1] === undefined) return object; // FIXME
         utils.checkBuffer(buffer, size, index);
 
         st.push({currentObj, size: size + index});
@@ -152,10 +148,12 @@ async function parseBSONFile(uri, fetchFile) {
         break;
       case BSON.BINARY:
         size = utils.readUInt32LE(buffer, index);
+        // avoid parsing compressed metrics chunk for now
+        if (size + index > totalSize) return object;
         // value = buffer.subarray(index, index + size)
         //     .map((b) => b.toString(16)).join('');
-        addValue(currentObj, key, value);
-        index += 4;
+        addValue(currentObj, key, 'BinData(0,"")');
+        index += 4 + size;
       case BSON.UNDEFINED:
         break;
       case BSON.OBJECTID:
