@@ -83,8 +83,6 @@ async function parseBSONFile(uri, fetchFile) {
   const st = [];
 
   while (index < buffer.length) {
-    if (buffer[size + index - 1] === undefined) return object;
-
     // stack logic
     if (st[st.length - 1] !== undefined && st[st.length - 1].size === index) {
       currentObj = st.pop().currentObj;
