@@ -16,7 +16,7 @@ class BSONError extends Error {
   }
 }
 
-export const checkBuffer = function(buffer, size, index = 0) {
+export const validateBuffer = function(buffer, size, index = 0) {
   if (size < 5) {
     throw new BSONError('Invalid BSON size');
   }

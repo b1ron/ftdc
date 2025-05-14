@@ -8,7 +8,7 @@ import * as utils from './utils.js';
  * Reads a buffer and returns the index at the end of a C string.
  * It purposely returns the index after the null terminator and not the actual string.
  * @api private
-*/
+ */
 function indexAfterCString(buffer, offset) {
   let i = offset;
   while (buffer[i] !== 0x00 && i < buffer.length) {
@@ -48,7 +48,7 @@ function addValue(obj, key, value) {
 }
 
 /**
- * Parses a BSON file and returns the parsed JSON object.
+ * Parses a BSON file and returns a parsed JSON object.
  * @param {string} uri - The URI of the file to fetch.
  * @param {(uri: string) => Promise<ArrayBuffer>} fetchFile
  * - The async function to fetch the file.
@@ -68,21 +68,20 @@ async function parseBSONFile(uri, fetchFile) {
 
   addUint8ArrayMethods(Uint8Array.prototype);
 
-  let size = utils.readUInt32LE(buffer);
-  const totalSize = size;
-  utils.checkBuffer(buffer, size);
-
   let key;
   let value;
+
+  let size = utils.readUInt32LE(buffer);
   let index = 4;
+  const totalSize = size;
+  utils.validateBuffer(buffer, size);
 
   // the object to return
   const object = {};
   let currentObj = object;
 
-  let isArray = false;
   const st = [];
-
+  let isArray = false;
   while (index < buffer.length) {
     // stack logic
     if (st[st.length - 1] !== undefined && st[st.length - 1].size === index) {
@@ -100,6 +99,7 @@ async function parseBSONFile(uri, fetchFile) {
       continue;
     }
 
+    // only parse the key if the current context is an object, not an array
     if (!(isArray)) {
       key = buffer
           .subarray(index, indexAfterCString(buffer, index) - 1)
@@ -121,7 +121,7 @@ async function parseBSONFile(uri, fetchFile) {
         break;
       case BSON.DOCUMENT:
         size = utils.readUInt32LE(buffer, index);
-        utils.checkBuffer(buffer, size, index);
+        utils.validateBuffer(buffer, size, index);
 
         st.push({currentObj, size: size + index});
 
@@ -129,30 +129,35 @@ async function parseBSONFile(uri, fetchFile) {
         addValue(currentObj, key, o);
         currentObj = o;
 
+        // if the parent is an array and the new document is empty (i.e. size == 5)
+        // maintain array behvaior
         if (size > 5) isArray = false;
 
         index += 4;
         break;
       case BSON.ARRAY:
         size = utils.readUInt32LE(buffer, index);
-        utils.checkBuffer(buffer, size, index);
+        utils.validateBuffer(buffer, size, index);
 
         st.push({currentObj, size: size + index});
 
         const a = [];
         addValue(currentObj, key, a);
         currentObj = a;
+
         isArray = true;
 
         index += 4;
         break;
       case BSON.BINARY:
         size = utils.readUInt32LE(buffer, index);
+
         // avoid parsing compressed metrics chunk for now
         if (size + index > totalSize) return object;
-        // value = buffer.subarray(index, index + size)
-        //     .map((b) => b.toString(16)).join('');
-        addValue(currentObj, key, 'BinData(0,"")');
+
+        value = buffer.subarray(index, index + size)
+            .map((b) => b.toString(16)).join('');
+        addValue(currentObj, key, value);
         index += 4 + size;
       case BSON.UNDEFINED:
         break;
@@ -174,6 +179,7 @@ async function parseBSONFile(uri, fetchFile) {
         break;
       case BSON.NULL:
         value = null;
+        addValue(currentObj, key, value);
         break;
       case BSON.REGEXP:
       case BSON.DBPOINTER:
