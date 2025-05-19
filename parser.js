@@ -3,7 +3,6 @@
 
 import * as BSON from './constants.js';
 import * as utils from './utils.js';
-import * as ftdc from './decompressor.js';
 
 /**
  * Reads a buffer and returns the index at the end of a C string.
@@ -55,7 +54,7 @@ function addValue(obj, key, value) {
  * - The async function to fetch the file.
  * @returns The parsed JSON object.
  */
-async function parseBSONFile(uri, fetchFile, options = {FTDC: false}) {
+export const parseBSONFile = async function(uri, fetchFile, options = {FTDC: false}) {
   let buffer;
   try {
     const response = await fetchFile(uri);
@@ -83,7 +82,6 @@ async function parseBSONFile(uri, fetchFile, options = {FTDC: false}) {
 
   const st = [];
   let isArray = false;
-
   while (index < buffer.length) {
     // stack logic
     if (st[st.length - 1] !== undefined && st[st.length - 1].size === index) {
@@ -154,11 +152,9 @@ async function parseBSONFile(uri, fetchFile, options = {FTDC: false}) {
       case BSON.BINARY:
         size = utils.readUInt32LE(buffer, index);
 
-        // return the inflated metrics chunk for futher parsing
+        // return the compressed metrics chunk for further parsing
         if (size + index > totalSize && options.FTDC) {
-          const data = await ftdc.inflate(buffer.subarray(index + 8 + 1, buffer.length),
-              'deflate');
-          return new Uint8Array(data);
+          return buffer.subarray(index + 8 + 1, buffer.length);
         }
 
         value = buffer.subarray(index, index + size)
@@ -207,7 +203,7 @@ async function parseBSONFile(uri, fetchFile, options = {FTDC: false}) {
         break;
       case BSON.LONG:
         value = utils.readBigInt64LE(buffer, index);
-        addValue(currentObj, key, value);
+        addValue(currentObj, key, value.toString());
         index += 8;
         break;
       case BSON.DECIMAL128:
@@ -219,27 +215,4 @@ async function parseBSONFile(uri, fetchFile, options = {FTDC: false}) {
     }
   }
   return object;
-}
-
-async function fetchFile(uri) {
-  const response = await fetch(uri, {
-    signal: AbortSignal.timeout(60 * 1000),
-  });
-  if (!response.ok) {
-    throw new Error('Failed to fetch file: ' + response.statusText);
-  }
-  return response.arrayBuffer();
-}
-
-const options = {FTDC: true};
-const result = await parseBSONFile(
-    'https://github.com/b1ron/ftdc/raw/refs/heads/master/files/metrics.bson',
-    fetchFile,
-    options,
-);
-
-// TODO: serialize BigInt inside the parser
-function serializeBigInt(key, value) {
-  return (typeof value === 'bigint') ? value.toString() : value;
-}
-console.log(JSON.stringify(result, serializeBigInt, 4));
+};
