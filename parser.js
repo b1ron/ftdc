@@ -3,6 +3,7 @@
 
 import * as BSON from './constants.js';
 import * as utils from './utils.js';
+import * as ftdc from './decompressor.js';
 
 /**
  * Reads a buffer and returns the index at the end of a C string.
@@ -54,7 +55,7 @@ function addValue(obj, key, value) {
  * - The async function to fetch the file.
  * @returns The parsed JSON object.
  */
-async function parseBSONFile(uri, fetchFile) {
+async function parseBSONFile(uri, fetchFile, options = {FTDC: false}) {
   let buffer;
   try {
     const response = await fetchFile(uri);
@@ -68,9 +69,6 @@ async function parseBSONFile(uri, fetchFile) {
 
   addUint8ArrayMethods(Uint8Array.prototype);
 
-  let key;
-  let value;
-
   let size = utils.readUInt32LE(buffer);
   let index = 4;
   const totalSize = size;
@@ -80,8 +78,12 @@ async function parseBSONFile(uri, fetchFile) {
   const object = {};
   let currentObj = object;
 
+  let key;
+  let value;
+
   const st = [];
   let isArray = false;
+
   while (index < buffer.length) {
     // stack logic
     if (st[st.length - 1] !== undefined && st[st.length - 1].size === index) {
@@ -152,8 +154,12 @@ async function parseBSONFile(uri, fetchFile) {
       case BSON.BINARY:
         size = utils.readUInt32LE(buffer, index);
 
-        // avoid parsing compressed metrics chunk for now
-        if (size + index > totalSize) return object;
+        // return the inflated metrics chunk for futher parsing
+        if (size + index > totalSize && options.FTDC) {
+          const data = await ftdc.inflate(buffer.subarray(index + 8 + 1, buffer.length),
+              'deflate');
+          return new Uint8Array(data);
+        }
 
         value = buffer.subarray(index, index + size)
             .map((b) => b.toString(16)).join('');
@@ -224,10 +230,15 @@ async function fetchFile(uri) {
   }
   return response.arrayBuffer();
 }
+
+const options = {FTDC: true};
 const result = await parseBSONFile(
     'https://github.com/b1ron/ftdc/raw/refs/heads/master/files/metrics.bson',
     fetchFile,
+    options,
 );
+
+// TODO: serialize BigInt inside the parser
 function serializeBigInt(key, value) {
   return (typeof value === 'bigint') ? value.toString() : value;
 }
