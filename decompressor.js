@@ -1,6 +1,7 @@
 // decompressor.js contains functions to decompress zlib-compressed FTDC metrics data
 
 import * as parser from './parser.js';
+import * as utils from './utils.js';
 
 const inflate = async function(buffer, format) {
   const byteStream = new ReadableStream({
@@ -15,15 +16,19 @@ const inflate = async function(buffer, format) {
 };
 
 const uncompress = async function() {
+  let data = await fetchFile('https://github.com/b1ron/ftdc/raw/refs/heads/master/files/metrics.bson');
   const options = {FTDC: true};
-  const compressed = await parser.parseBSONFile(
-      'https://github.com/b1ron/ftdc/raw/refs/heads/master/files/metrics.bson',
-      fetchFile,
+  data = new Uint8Array(data);
+  const compressed = parser.parseBSON(
+      data,
       options,
   );
 
+  options.FTDC = false;
   const metrics = new Uint8Array(await inflate(compressed, 'deflate'));
-  console.log(metrics);
+  const size = utils.readInt32LE(metrics);
+  const ref = parser.parseBSON(metrics.subarray(0, size), options);
+  console.log(ref);
 };
 
 async function fetchFile(uri) {

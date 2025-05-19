@@ -48,24 +48,11 @@ function addValue(obj, key, value) {
 }
 
 /**
- * Parses a BSON file and returns a parsed JSON object.
- * @param {string} uri - The URI of the file to fetch.
- * @param {(uri: string) => Promise<ArrayBuffer>} fetchFile
- * - The async function to fetch the file.
+ * Parses a BSON buffer
+ * @param {Uint8Array} buffer
  * @returns The parsed JSON object.
  */
-export const parseBSONFile = async function(uri, fetchFile, options = {FTDC: false}) {
-  let buffer;
-  try {
-    const response = await fetchFile(uri);
-    if (!(response instanceof ArrayBuffer)) {
-      throw new Error('fetchFile must return an ArrayBuffer');
-    }
-    buffer = new Uint8Array(response);
-  } catch (error) {
-    throw error;
-  }
-
+export const parseBSON = function(buffer, options = {FTDC: false}) {
   addUint8ArrayMethods(Uint8Array.prototype);
 
   let size = utils.readUInt32LE(buffer);
@@ -152,7 +139,7 @@ export const parseBSONFile = async function(uri, fetchFile, options = {FTDC: fal
       case BSON.BINARY:
         size = utils.readUInt32LE(buffer, index);
 
-        // return the compressed metrics chunk for further parsing
+        // return the metrics chunk for further parsing
         if (size + index > totalSize && options.FTDC) {
           return buffer.subarray(index + 8 + 1, buffer.length);
         }
