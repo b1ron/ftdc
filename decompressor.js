@@ -16,7 +16,7 @@ const inflate = async function(buffer, format) {
 };
 
 const uncompress = async function() {
-  let data = await fetchFile('https://github.com/b1ron/ftdc/raw/refs/heads/master/files/metrics.bson');
+  let data = await fetchFile('https://github.com/b1ron/ftdc/raw/refs/heads/master/files/diagnostic.data/metrics.2024-04-16T11-34-42Z-00000');
   const options = {FTDC: true}; // FTDC true returns compressed metrics
   data = new Uint8Array(data);
   const compressed = parser.parseBSON(
