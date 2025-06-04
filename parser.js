@@ -1,5 +1,4 @@
-// BSON parser for FTDC files
-// Archive File Format - https://github.com/mongodb/mongo/blob/0a68308f0d39a928ed551f285ba72ca560c38576/src/mongo/db/ftdc/README.md#archive-file-format
+// parser.js contains a BSON parser, including an option for FTDC files
 
 import * as BSON from './constants.js';
 import * as utils from './utils.js';
@@ -117,7 +116,7 @@ export const parseBSON = function(buffer, options = {FTDC: false}) {
         currentObj = o;
 
         // if the parent is an array and the new document is empty (i.e. size == 5)
-        // maintain array behvaior
+        // maintain array behvaior; otherwise, switch to object behavior
         if (size > 5) isArray = false;
 
         index += 4;
