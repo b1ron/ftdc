@@ -1,4 +1,4 @@
-// parser.js contains a BSON parser, including an option for FTDC files
+// parser.js contains a BSON parser with an option for FTDC files
 
 import * as BSON from './constants.js';
 import * as utils from './utils.js';
