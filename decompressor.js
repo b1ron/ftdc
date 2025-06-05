@@ -20,23 +20,26 @@ const uncompress = async function() {
   let data = await fetchFile('https://github.com/b1ron/ftdc/raw/refs/heads/master/files/diagnostic.data/metrics.2024-04-16T11-34-42Z-00000');
   const options = {FTDC: true}; // FTDC true returns compressed metrics
   data = new Uint8Array(data);
+  const uncompressedLength = utils.readUInt32LE(data);
+  if (uncompressedLength > 10000000) {
+    console.log('metrics chunk has exceeded the allowable size');
+  }
   data = parser.parseBSON(data, options);
   options.FTDC = false;
-
-  const MAX_METRICS = 1000000;
 
   data = await inflate(data);
   data = new Uint8Array(data);
   const size = utils.readUInt32LE(data);
   const referenceDocument = parser.parseBSON(data.subarray(0, size));
   console.log(referenceDocument.serverStatus.metrics);
-  data = data.subarray(4, data.length);
-  const metricCount = utils.readUInt32LE(data);
+
+  data = data.subarray(size, data.length);
+  const metricsCount = utils.readUInt32LE(data);
   const sampleCount = utils.readUInt32LE(data, 4);
-  if (metricCount * sampleCount > MAX_METRICS) {
-    console.log('Count has exceeded the allowable range');
+  if (metricsCount * sampleCount > 1000000) {
+    console.log('metricsCount and sampleCount have exceeded the allowable range');
   }
-  console.log(sampleCount, metricCount);
+  console.log(sampleCount, metricsCount);
 };
 
 async function fetchFile(uri) {
