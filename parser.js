@@ -85,7 +85,7 @@ export const parseBSON = function(buffer, options = {FTDC: false}) {
       continue;
     }
 
-    // only parse the key if the current context is an object, not an array
+    // only parse a key if the current context is an object, not an array
     if (!(isArray)) {
       key = buffer
           .subarray(index, indexAfterCString(buffer, index) - 1)
@@ -116,7 +116,7 @@ export const parseBSON = function(buffer, options = {FTDC: false}) {
         currentObj = o;
 
         // if the parent is an array and the new document is empty (i.e. size == 5)
-        // maintain array behvaior; otherwise, switch to object behavior
+        // maintain array behavior; otherwise, switch to object behavior
         if (size > 5) isArray = false;
 
         index += 4;
@@ -171,10 +171,8 @@ export const parseBSON = function(buffer, options = {FTDC: false}) {
         break;
       case BSON.REGEXP:
       case BSON.DBPOINTER:
-        break;
       case BSON.CODE:
       case BSON.SYMBOL:
-        break;
       case BSON.CODE_W_SCOPE:
         break;
       case BSON.INT32:
@@ -183,7 +181,7 @@ export const parseBSON = function(buffer, options = {FTDC: false}) {
         index += 4;
         break;
       case BSON.TIMESTAMP:
-        value = utils.readBigInt64LE(buffer, index).toString();
+        value = utils.readTimestamp(buffer, index);
         addValue(currentObj, key, value);
         index += 8;
         break;

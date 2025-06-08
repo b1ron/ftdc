@@ -30,6 +30,12 @@ export const readObjectId = function(buffer, offset) {
   return `ObjectId("${value.toHex()}")`;
 };
 
+export const readTimestamp = function(buffer, offset) {
+  const time = readUInt32LE(buffer, offset);
+  const ordinal = readUInt32LE(buffer, offset + 4);
+  return `Timestamp(${time}, ${ordinal})`;
+};
+
 export const readString = function(buffer, offset) {
   const length = readUInt32LE(buffer, offset);
   const value = buffer.slice(

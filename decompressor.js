@@ -13,34 +13,67 @@ const inflate = async function(buffer) {
   });
   const decompressionStream = new DecompressionStream('deflate');
   const decompressedStream = byteStream.pipeThrough(decompressionStream);
-  return new Response(decompressedStream).arrayBuffer();
+  return new Response(decompressedStream).bytes();
 };
 
 const uncompress = async function() {
   let data = await fetchFile('https://github.com/b1ron/ftdc/raw/refs/heads/master/files/diagnostic.data/metrics.2024-04-16T11-34-42Z-00000');
   const options = {FTDC: true}; // FTDC true returns compressed metrics
-  data = new Uint8Array(data);
   const uncompressedLength = utils.readUInt32LE(data);
   if (uncompressedLength > 10000000) {
-    console.log('metrics chunk has exceeded the allowable size');
+    throw new Error('Metrics chunk has exceeded the allowable size');
   }
   data = parser.parseBSON(data, options);
   options.FTDC = false;
 
   data = await inflate(data);
-  data = new Uint8Array(data);
   const size = utils.readUInt32LE(data);
   const referenceDocument = parser.parseBSON(data.subarray(0, size));
-  console.log(referenceDocument.serverStatus.metrics);
 
   data = data.subarray(size, data.length);
   const metricsCount = utils.readUInt32LE(data);
   const sampleCount = utils.readUInt32LE(data, 4);
   if (metricsCount * sampleCount > 1000000) {
-    console.log('metricsCount and sampleCount have exceeded the allowable range');
+    throw new Error('Count of metrics and samples have exceeded the allowable range');
   }
-  console.log(sampleCount, metricsCount);
+
+  const metrics = [];
+  extractMetricsFromDocument(referenceDocument, metrics);
+  if (metrics.length != metricsCount) {
+    console.log(metrics.length, metricsCount);
+    throw new Error(
+        `Metrics in the reference document and metrics count do not match
+        ${metrics.length}, ${metricsCount}`,
+    );
+  }
 };
+
+function extractMetricsFromDocument(doc, metrics) {
+  for (const value of Object.values(doc)) {
+    if (value.constructor == Object || Array.isArray(value)) {
+      extractMetricsFromDocument(value, metrics);
+    } else {
+      if (value.constructor === Date) {
+        metrics.push(value.getTime());
+        continue;
+      }
+      if (typeof value === 'string') {
+        if (value.startsWith('Timestamp')) {
+          const numbers = value.match(/\d+/g);
+          metrics.push(...numbers);
+        }
+        if (isNaN(value)) {
+          continue; // skip non numeric fields
+        }
+        if (value.trim() !== '') {
+          metrics.push(Number(value));
+          continue;
+        }
+      }
+      metrics.push(Number(value));
+    }
+  }
+}
 
 async function fetchFile(uri) {
   const response = await fetch(uri, {
@@ -49,7 +82,7 @@ async function fetchFile(uri) {
   if (!response.ok) {
     throw new Error('Failed to fetch file: ' + response.statusText);
   }
-  return response.arrayBuffer();
+  return response.bytes();
 }
 
 uncompress();
