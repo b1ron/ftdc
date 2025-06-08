@@ -40,11 +40,7 @@ const uncompress = async function() {
   const metrics = [];
   extractMetricsFromDocument(referenceDocument, metrics);
   if (metrics.length != metricsCount) {
-    console.log(metrics.length, metricsCount);
-    throw new Error(
-        `Metrics in the reference document and metrics count do not match
-        ${metrics.length}, ${metricsCount}`,
-    );
+    throw new Error('Metrics in the reference document and metrics count do not match');
   }
 };
 
@@ -52,22 +48,23 @@ function extractMetricsFromDocument(doc, metrics) {
   for (const value of Object.values(doc)) {
     if (value.constructor == Object || Array.isArray(value)) {
       extractMetricsFromDocument(value, metrics);
-    } else {
-      if (typeof value === 'string') {
-        if (value.startsWith('Timestamp')) {
-          const numbers = value.match(/\d+/g);
-          metrics.push(...numbers);
-        }
-        if (isNaN(value)) {
-          continue; // skip non numeric fields
-        }
-        if (value.trim() !== '') {
-          metrics.push(Number(value));
-        }
+      continue;
+    }
+    if (typeof value === 'string') {
+      if (value.startsWith('Timestamp')) {
+        const numbers = value.match(/\d+/g);
+        metrics.push(...numbers);
         continue;
       }
-      metrics.push(Number(value));
+      if (isNaN(value) || value === '') {
+        continue; // skip non numeric fields and empty strings
+      }
+      if (value.trim() !== '') {
+        metrics.push(Number(value));
+        continue;
+      }
     }
+    metrics.push(Number(value));
   }
 }
 
