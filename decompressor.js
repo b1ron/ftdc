@@ -51,6 +51,7 @@ function extractMetricsFromDocument(doc, metrics) {
       extractMetricsFromDocument(value, metrics);
       continue;
     }
+
     if (typeof value === 'string') {
       // extract two numbers from timestamp
       if (value.startsWith('Timestamp')) {
@@ -68,12 +69,15 @@ function extractMetricsFromDocument(doc, metrics) {
         continue;
       }
     }
-    if (value.constructor === Date) {
+
+    // convert date
+    if (value instanceof Date) {
       metrics.push(value.getTime());
       continue;
     }
-    // primitive number
-    metrics.push(value);
+
+    // primitive number or numeric-like (e.g., booleans)
+    metrics.push(Number(value));
   }
 }
 
