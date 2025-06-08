@@ -53,10 +53,6 @@ function extractMetricsFromDocument(doc, metrics) {
     if (value.constructor == Object || Array.isArray(value)) {
       extractMetricsFromDocument(value, metrics);
     } else {
-      if (value.constructor === Date) {
-        metrics.push(value.getTime());
-        continue;
-      }
       if (typeof value === 'string') {
         if (value.startsWith('Timestamp')) {
           const numbers = value.match(/\d+/g);
@@ -67,8 +63,8 @@ function extractMetricsFromDocument(doc, metrics) {
         }
         if (value.trim() !== '') {
           metrics.push(Number(value));
-          continue;
         }
+        continue;
       }
       metrics.push(Number(value));
     }
