@@ -42,6 +42,7 @@ const uncompress = async function() {
   if (metrics.length != metricsCount) {
     throw new Error('Metrics in the reference document and metrics count do not match');
   }
+  console.log(metrics);
 };
 
 function extractMetricsFromDocument(doc, metrics) {
@@ -51,20 +52,28 @@ function extractMetricsFromDocument(doc, metrics) {
       continue;
     }
     if (typeof value === 'string') {
+      // extract two numbers from timestamp
       if (value.startsWith('Timestamp')) {
         const numbers = value.match(/\d+/g);
         metrics.push(...numbers);
         continue;
       }
+      // skip non numeric fields and empty strings
       if (isNaN(value) || value === '') {
-        continue; // skip non numeric fields and empty strings
+        continue;
       }
+      // valid string number
       if (value.trim() !== '') {
         metrics.push(Number(value));
         continue;
       }
     }
-    metrics.push(Number(value));
+    if (value.constructor === Date) {
+      metrics.push(value.getTime());
+      continue;
+    }
+    // primitive number
+    metrics.push(value);
   }
 }
 
