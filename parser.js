@@ -1,4 +1,4 @@
-// parser.js contains a BSON parser with an option for FTDC files
+// parser.js contains a BSON parser with an option for FTDC files.
 
 import * as BSON from './constants.js';
 import * as utils from './utils.js';
@@ -54,7 +54,7 @@ function addValue(obj, key, value) {
 export const parseBSON = function(buffer, options = {FTDC: false}) {
   addUint8ArrayMethods(Uint8Array.prototype);
 
-  let size = utils.readUInt32LE(buffer);
+  let size = utils.readUint32LE(buffer);
   let index = 4;
   const totalSize = size;
   utils.validateBuffer(buffer, size);
@@ -106,7 +106,7 @@ export const parseBSON = function(buffer, options = {FTDC: false}) {
         index += 4 + value.length;
         break;
       case BSON.DOCUMENT:
-        size = utils.readUInt32LE(buffer, index);
+        size = utils.readUint32LE(buffer, index);
         utils.validateBuffer(buffer, size, index);
 
         st.push({currentObj, size: size + index});
@@ -122,7 +122,7 @@ export const parseBSON = function(buffer, options = {FTDC: false}) {
         index += 4;
         break;
       case BSON.ARRAY:
-        size = utils.readUInt32LE(buffer, index);
+        size = utils.readUint32LE(buffer, index);
         utils.validateBuffer(buffer, size, index);
 
         st.push({currentObj, size: size + index});
@@ -136,7 +136,7 @@ export const parseBSON = function(buffer, options = {FTDC: false}) {
         index += 4;
         break;
       case BSON.BINARY:
-        size = utils.readUInt32LE(buffer, index);
+        size = utils.readUint32LE(buffer, index);
 
         // return the metrics chunk for further parsing
         if (size + index > totalSize && options.FTDC) {

@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 // util.js contains utility functions for working with BSON data types and buffers.
 
 // Temporary buffers to convert doubles.
@@ -31,23 +32,23 @@ export const readObjectId = function(buffer, offset) {
 };
 
 export const readTimestamp = function(buffer, offset) {
-  const time = readUInt32LE(buffer, offset);
-  const ordinal = readUInt32LE(buffer, offset + 4);
+  const time = readUint32LE(buffer, offset);
+  const ordinal = readUint32LE(buffer, offset + 4);
   return `Timestamp(${time}, ${ordinal})`;
 };
 
 export const readString = function(buffer, offset) {
-  const length = readUInt32LE(buffer, offset);
+  const length = readUint32LE(buffer, offset);
   const value = buffer.slice(
       offset + 4, offset + 4 + length - 1); // - 1 to exclude trailing null byte
   return value.toString();
 };
 
-export const readUInt32LE = function(buffer, offset = 0) {
+export const readUint32LE = function(buffer, offset = 0) {
   const first = buffer[offset];
   const last = buffer[offset + 3];
   if (first === undefined || last === undefined) {
-    throw new Error('Out of range:', buffer.length - 4);
+    throw new Error(`Buffer access out of range: offset=${offset}, buffer length=${buffer.length}`);
   }
 
   return (
@@ -62,7 +63,7 @@ export const readInt32LE = function(buffer, offset = 0) {
   const first = buffer[offset];
   const last = buffer[offset + 3];
   if (first === undefined || last === undefined) {
-    throw new Error('Out of range:', buffer.length - 4);
+    throw new Error(`Buffer access out of range: offset=${offset}, buffer length=${buffer.length}`);
   }
 
   return (
@@ -77,7 +78,7 @@ export const readDoubleLE = function(buffer, offset = 0) {
   const first = buffer[offset];
   const last = buffer[offset + 7];
   if (first === undefined || last === undefined) {
-    throw new Error('Out of range:', buffer.length - 8);
+    throw new Error(`Buffer access out of range: offset=${offset}, buffer length=${buffer.length}`);
   }
 
   uInt8Float64Array[0] = first;
@@ -95,7 +96,7 @@ export const readBigInt64LE = function(buffer, offset = 0) {
   const first = buffer[offset];
   const last = buffer[offset + 7];
   if (first === undefined || last === undefined) {
-    throw new Error('Out of range:', buffer.length - 8);
+    throw new Error(`Buffer access out of range: offset=${offset}, buffer length=${buffer.length}`);
   }
 
   const value =
@@ -112,6 +113,13 @@ export const readBigInt64LE = function(buffer, offset = 0) {
         buffer[++offset] * 2 ** 24,
     )
   );
+};
+
+export const decodeVarint = function(buffer) {
+  const current = 0;
+  for (const byte of buffer) {
+
+  }
 };
 
 export const toString = function() {
