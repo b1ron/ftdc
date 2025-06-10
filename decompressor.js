@@ -49,16 +49,28 @@ const uncompress = async function() {
   }
 
   const deltas = [];
-  const zeroesCount = 0;
+  let zeroesCount = 0;
 
-  const buffer = [250, 300, 2, 400];
-  const int = utils.decodeVarint(buffer);
-  console.log(int, buffer);
-  // for (let i = 0; i < metricsCount; i++) {
-  //   for (let j = 0; j < sampleCount; j++) {
-  //     const delta = utils.decodeVarint(data);
-  //   }
-  // }
+  const reader = utils.createBufferReader(data);
+
+  // decompress deltas
+  for (let i = 0; i < metricsCount; i++) {
+    for (let j = 0; j < sampleCount; j++) {
+      if (zeroesCount > 0) {
+        deltas[i * sampleCount + j] = 0;
+        zeroesCount--;
+        continue;
+      }
+      const delta = reader.decodeVarint();
+      if (delta === 0) {
+        // read number of zeroes
+        zeroesCount = reader.decodeVarint();
+      }
+      deltas[i * sampleCount + j] = delta;
+    }
+  }
+
+  console.log(deltas);
 };
 
 function extractMetricsFromDocument(doc, metrics) {

@@ -116,7 +116,7 @@ export const readBigInt64LE = function(buffer, offset = 0) {
 };
 
 // uses LEB128
-export const decodeVarint = function(buffer) {
+function decodeVarint(buffer) {
   let current = 0;
   let i = 0;
   let shift = 0;
@@ -133,15 +133,11 @@ export const decodeVarint = function(buffer) {
 };
 
 export const createBufferReader = function(buffer) {
-  let offset = 0;
   return {
     decodeVarint: function() {
       const v = decodeVarint(buffer);
-      offset += v.i;
+      buffer = buffer.slice(v.i);
       return v.current;
-    },
-    rest() {
-      return buffer.slice(offset);
     },
   };
 };
