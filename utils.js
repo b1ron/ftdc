@@ -115,11 +115,23 @@ export const readBigInt64LE = function(buffer, offset = 0) {
   );
 };
 
+// uses LEB128
 export const decodeVarint = function(buffer) {
-  const current = 0;
-  for (const byte of buffer) {
-
+  let current = 0;
+  let i = 0;
+  while (i < buffer.length) {
+    let shift = 0;
+    let byte = buffer[i];
+    // indicates a continuation bit (MSB = 1)
+    while (byte >= 128) {
+      current += (byte & 127) << shift; // extract 7 bits and shift
+      shift += 7;
+      byte = buffer[++i];
+    }
+    i++;
+    current += byte << shift;
   }
+  return current;
 };
 
 export const toString = function() {
