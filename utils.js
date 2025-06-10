@@ -119,19 +119,31 @@ export const readBigInt64LE = function(buffer, offset = 0) {
 export const decodeVarint = function(buffer) {
   let current = 0;
   let i = 0;
-  while (i < buffer.length) {
-    let shift = 0;
-    let byte = buffer[i];
-    // indicates a continuation bit (MSB = 1)
-    while (byte >= 128) {
-      current += (byte & 127) << shift; // extract 7 bits and shift
-      shift += 7;
-      byte = buffer[++i];
-    }
-    i++;
-    current += byte << shift;
+  let shift = 0;
+  let byte = buffer[i];
+  // indicates a continuation bit (MSB = 1)
+  while (byte >= 128) {
+    current += (byte & 127) << shift; // extract 7 bits and shift
+    shift += 7;
+    byte = buffer[++i];
   }
-  return current;
+  i++;
+  current += byte << shift;
+  return {current, i};
+};
+
+export const createBufferReader = function(buffer) {
+  let offset = 0;
+  return {
+    decodeVarint: function() {
+      const v = decodeVarint(buffer);
+      offset += v.i;
+      return v.current;
+    },
+    rest() {
+      return buffer.slice(offset);
+    },
+  };
 };
 
 export const toString = function() {

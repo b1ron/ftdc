@@ -48,8 +48,17 @@ const uncompress = async function() {
     throw new Error('Metrics in the reference document and metrics count do not match');
   }
 
-  // const deltas = [];
-  // const zeroesCount = 0;
+  const deltas = [];
+  const zeroesCount = 0;
+
+  const buffer = [250, 300, 2, 400];
+  const int = utils.decodeVarint(buffer);
+  console.log(int, buffer);
+  // for (let i = 0; i < metricsCount; i++) {
+  //   for (let j = 0; j < sampleCount; j++) {
+  //     const delta = utils.decodeVarint(data);
+  //   }
+  // }
 };
 
 function extractMetricsFromDocument(doc, metrics) {
