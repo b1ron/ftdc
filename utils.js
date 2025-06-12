@@ -32,8 +32,8 @@ export const readObjectId = function(buffer, offset) {
 };
 
 export const readTimestamp = function(buffer, offset) {
-  const time = readUint32LE(buffer, offset);
-  const ordinal = readUint32LE(buffer, offset + 4);
+  const ordinal = readUint32LE(buffer, offset);
+  const time = readUint32LE(buffer, offset + 4);
   return `Timestamp(${time}, ${ordinal})`;
 };
 
