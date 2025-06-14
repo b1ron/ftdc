@@ -4,7 +4,7 @@
 import * as parser from './parser.js';
 import * as utils from './utils.js';
 
-const inflate = async function(buffer) {
+async function inflate(buffer) {
   const byteStream = new ReadableStream({
     start(controller) {
       controller.enqueue(buffer);
@@ -16,8 +16,8 @@ const inflate = async function(buffer) {
   return new Response(decompressedStream).bytes();
 };
 
-const uncompress = async function() {
-  let compressed = await fetchFile('https://github.com/b1ron/ftdc/raw/refs/heads/master/files/diagnostic.data/metrics.2024-04-16T11-34-42Z-00000');
+// Decodes compressed metric data and reconstructs full sample documents.
+const uncompress = async function(compressed) {
   const uncompressedLength = utils.readUint32LE(compressed);
 
   if (uncompressedLength > 10000000) {
@@ -29,22 +29,27 @@ const uncompress = async function() {
   compressed = parser.parseBSON(compressed, options);
   options.FTDC = false;
 
-  let data = await inflate(compressed);
-  const size = utils.readUint32LE(data);
-  const referenceDocument = parser.parseBSON(data.subarray(0, size));
-  data = data.subarray(size, data.length);
+  let buffer = await inflate(compressed);
+  const size = utils.readUint32LE(buffer);
 
-  const metricsCount = utils.readUint32LE(data);
-  const sampleCount = utils.readUint32LE(data, 4);
+  // parse reference document
+  const referenceDocument = parser.parseBSON(buffer.subarray(0, size));
+  buffer = buffer.subarray(size, buffer.length);
+
+  stripNonNumericFields(referenceDocument);
+
+  const metricsCount = utils.readUint32LE(buffer);
+  const sampleCount = utils.readUint32LE(buffer, 4);
 
   if (metricsCount * sampleCount > 1000000) {
     throw new Error('Count of metrics and samples have exceeded the allowable range');
   }
 
   const metrics = [];
-  extractMetricsFromDocument(referenceDocument, metrics);
+  const currentDocument = referenceDocument;
+  extractMetricsFromDocument(currentDocument, metrics);
 
-  if (metrics.length != metricsCount) {
+  if (metrics.length !== metricsCount) {
     throw new Error('Metrics in the reference document and metrics count do not match');
   }
 
@@ -70,38 +75,65 @@ const uncompress = async function() {
     }
   }
 
-  // inflate deltas
+  const docs = [];
+  docs.push(currentDocument);
+
+  // inflate delta-encoded metric data:
+  // for each metric, add its baseline value (from the reference document) to
+  // the first sample
   for (let i = 0; i < metricsCount; i++) {
     deltas[i * sampleCount + 0] += metrics[i];
   }
 
-  console.log(deltas.join(', '));
+  // restore the original cumulative values
+  for (let i = 0; i < metricsCount; i++) {
+    for (let j = 1; j < sampleCount; j++) {
+      deltas[i * sampleCount + j] += deltas[i * sampleCount + j - 1];
+    }
+  }
+
+  // construct a new document for each sample with context from the reference document
+  for (let i = 0; i < sampleCount; i++) {
+    for (let j = 0; j < metricsCount; j++) {
+      metrics[j] = deltas[j * sampleCount + i];
+    }
+    updateFromArray(referenceDocument, currentDocument, metrics);
+    docs.push(currentDocument);
+  }
+
+  return docs;
 };
 
-function extractMetricsFromDocument(doc, metrics) {
-  for (const value of Object.values(doc)) {
+function stripNonNumericFields(doc) {
+  Object.entries(doc).forEach(([key, value]) => {
     if (typeof value === 'string') {
-      // extract two numbers from timestamp
       if (value.startsWith('Timestamp')) {
-        const numbers = value.match(/\d+/g);
-        metrics.push(...numbers);
-        continue;
+        return;
       }
-      // skip non numeric fields and empty strings
+      // delete non numeric fields and empty strings
       if (isNaN(value) || value === '') {
-        continue;
-      }
-      // valid string number
-      if (value.trim() !== '') {
-        metrics.push(Number(value));
-        continue;
+        delete(doc[key]);
+        return;
       }
     }
 
-    // convert date
+    if (value.constructor == Object || Array.isArray(value)) {
+      stripNonNumericFields(value);
+    }
+  });
+}
+
+function extractMetricsFromDocument(doc, metrics) {
+  Object.values(doc).forEach((value) => {
+    // extract two numbers from timestamp
+    if (typeof value === 'string' && value.startsWith('Timestamp')) {
+      const numbers = value.match(/\d+/g);
+      metrics.push(...numbers);
+      return;
+    }
     if (value instanceof Date) {
       metrics.push(value.getTime());
-      continue;
+      return;
     }
 
     if (value.constructor == Object || Array.isArray(value)) {
@@ -110,17 +142,21 @@ function extractMetricsFromDocument(doc, metrics) {
       // primitive number or numeric-like (e.g., booleans)
       metrics.push(Number(value));
     }
-  }
-}
-
-async function fetchFile(uri) {
-  const response = await fetch(uri, {
-    signal: AbortSignal.timeout(60 * 1000),
   });
-  if (!response.ok) {
-    throw new Error('Failed to fetch file: ' + response.statusText);
-  }
-  return response.bytes();
 }
 
-uncompress();
+function updateFromArray(ref, doc, metrics, pos = 0) {
+  Object.entries(ref).forEach(([key, value]) => {
+    if (typeof value === 'string' && value.startsWith('Timestamp')) {
+      doc[key] = metrics[pos++];
+      pos++; // skip ordinal
+      return;
+    }
+
+    if (value.constructor == Object || Array.isArray(value)) {
+      updateFromArray(value, doc, metrics, pos);
+    } else {
+      doc[key] = metrics[pos++];
+    }
+  });
+}
