@@ -70,7 +70,7 @@ export const parseBSON = function(buffer, options = {FTDC: false}) {
   let isArray = false;
   while (index < buffer.length) {
     // stack logic
-    if (st[st.length - 1] !== undefined && st[st.length - 1].size === index) {
+    if (st[st.length - 1]?.size === index) {
       currentObj = st.pop().currentObj;
       if (Array.isArray(currentObj)) {
         isArray = true;
