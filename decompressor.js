@@ -1,4 +1,4 @@
-// Decompressor.js contains functions to decompress compressed FTDC metrics data.
+// decompressor.js contains functions to decompress compressed FTDC metrics data.
 // Archive File Format - https://github.com/mongodb/mongo/blob/0a68308f0d39a928ed551f285ba72ca560c38576/src/mongo/db/ftdc/README.md#archive-file-format
 
 import * as parser from './parser.js';
@@ -16,12 +16,14 @@ async function inflate(buffer) {
 	return new Response(decompressedStream).bytes();
 }
 
-// Decodes compressed metric data and reconstructs full sample documents.
-const uncompress = async function (compressed) {
+/**
+ * TODO
+ */
+export const uncompress = async function (compressed) {
 	const uncompressedLength = utils.readUint32LE(compressed);
 
 	if (uncompressedLength > 10000000) {
-		throw new Error('Metrics chunk has exceeded the allowable size');
+		throw new Error('TODO');
 	}
 
 	// FTDC true returns compressed metrics
@@ -32,80 +34,18 @@ const uncompress = async function (compressed) {
 	let buffer = await inflate(compressed);
 	const size = utils.readUint32LE(buffer);
 
-	// Parse reference document
-	const referenceDocument = parser.parseBSON(buffer.subarray(0, size));
+	const schema = parser.parseBSON(buffer.subarray(0, size));
 	buffer = buffer.subarray(size, buffer.length);
 
-	stripNonNumericFields(referenceDocument);
-
-	const metricsCount = utils.readUint32LE(buffer);
-	const sampleCount = utils.readUint32LE(buffer, 4);
-
-	if (metricsCount * sampleCount > 1000000) {
-		throw new Error('Count of metrics and samples have exceeded the allowable range');
-	}
-
-	const metrics = [];
-	const document = referenceDocument;
-	extractMetricsFromDocument(document, metrics);
-
-	if (metrics.length !== metricsCount) {
-		throw new Error('Metrics in the reference document and metrics count do not match');
-	}
-
-	const deltas = [];
-	let zeroOutCount = 0;
-
 	const reader = utils.createBufferReader(buffer);
+	const metricsCount = reader.readUint32LE();
+	const sampleCount = reader.readUint32LE();
+	console.log(metricsCount * sampleCount);
 
-	// Decompress deltas
-	for (let i = 0; i < metricsCount; i++) {
-		for (let j = 0; j < sampleCount; j++) {
-			if (zeroOutCount > 0) {
-				deltas[(i * sampleCount) + j] = 0;
-				zeroOutCount--;
-				continue;
-			}
-
-			const delta = reader.decodeVarint();
-			if (delta === 0) {
-				// Decode run-length of zeros
-				zeroOutCount = reader.decodeVarint();
-			}
-
-			deltas[(i * sampleCount) + j] = delta;
-		}
-	}
-
-	const docs = [];
-	docs.push(document);
-
-	// Inflate delta-encoded metric data:
-	// for each metric, add its baseline value (from the reference document) to
-	// the first sample
-	for (let i = 0; i < metricsCount; i++) {
-		deltas[(i * sampleCount) + 0] += metrics[i];
-	}
-
-	// Restore the original cumulative values
-	for (let i = 1; i < metricsCount; i++) {
-		for (let j = 1; j < sampleCount; j++) {
-			deltas[(i * sampleCount) + j] += deltas[(i * sampleCount) + j - 1];
-		}
-	}
-
-	// Construct a new document for each sample with the explanatory variables
-	// from the reference document
-	for (let i = 0; i < sampleCount; i++) {
-		for (let j = 0; j < metricsCount; j++) {
-			metrics[j] = deltas[(j * sampleCount) + i];
-		}
-
-		updateFromArray(referenceDocument, document, metrics);
-		docs.push(document);
-	}
-
-	return docs;
+	// buffer = buffer.subarray(size, buffer.length);
+	// const numMetrics = utils.readUint32LE(buffer);
+	// const numSamples = utils.readUint32LE(buffer, 4);
+	// buffer = buffer.subarray(8, buffer.length);
 };
 
 function stripNonNumericFields(doc) {
@@ -166,5 +106,3 @@ function updateFromArray(ref, doc, metrics, pos = 0) {
 		}
 	});
 }
-
-uncompress();
