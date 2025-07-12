@@ -1,5 +1,4 @@
 /* eslint-disable @stylistic/no-mixed-operators */
-
 // util.js contains utility functions for working with BSON data types and buffers.
 
 // Temporary buffers to convert doubles.
