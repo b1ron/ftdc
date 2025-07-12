@@ -29,48 +29,39 @@ export const uncompress = async function (compressed) {
 	// FTDC true returns compressed metrics
 	const options = {FTDC: true};
 	compressed = parser.parseBSON(compressed, options);
-	options.FTDC = false;
 
-	let buffer = await inflate(compressed);
+	let buffer = await inflate(compressed.data);
 	const size = utils.readUint32LE(buffer);
 
-	const schema = parser.parseBSON(buffer.subarray(0, size));
+	let ref = parser.parseBSON(buffer.subarray(0, size));
 	buffer = buffer.subarray(size, buffer.length);
 
 	const reader = utils.createBufferReader(buffer);
+
 	const metricsCount = reader.readUint32LE();
 	const sampleCount = reader.readUint32LE();
-	console.log(metricsCount * sampleCount);
 
-	// buffer = buffer.subarray(size, buffer.length);
-	// const numMetrics = utils.readUint32LE(buffer);
-	// const numSamples = utils.readUint32LE(buffer, 4);
-	// buffer = buffer.subarray(8, buffer.length);
+	ref = flattenObject(ref);
+	const metrics = [];
+	extractMetrics(ref, metrics); // FIXME
+
+	// reader.readUint32LE();
 };
 
-function stripNonNumericFields(doc) {
-	Object.entries(doc).forEach(([key, value]) => {
-		if (typeof value === 'string') {
-			if (value.startsWith('Timestamp')) {
-				return;
-			}
-
-			// Delete non numeric fields and empty strings
-			if (isNaN(value) || value === '') {
-				delete doc[key];
-				return;
-			}
-		}
-
+function flattenObject(obj, path = '', result = {}) {
+	Object.entries(obj).forEach(([key, value]) => {
 		if (value.constructor === Object || Array.isArray(value)) {
-			stripNonNumericFields(value);
+			return flattenObject(value, path ? path + '.' + key : key, result);
 		}
+
+		result[path ? path + '.' + key : key] = value;
 	});
+	return result;
 }
 
-function extractMetricsFromDocument(doc, metrics) {
+function extractMetrics(doc, metrics) {
 	Object.values(doc).forEach(value => {
-		// Extract two numbers from timestamp
+		// extract two numbers from timestamp
 		if (typeof value === 'string' && value.startsWith('Timestamp')) {
 			const numbers = value.match(/\d+/g);
 			metrics.push(...numbers);
@@ -83,9 +74,9 @@ function extractMetricsFromDocument(doc, metrics) {
 		}
 
 		if (value.constructor === Object || Array.isArray(value)) {
-			extractMetricsFromDocument(value, metrics);
+			extractMetrics(value, metrics);
 		} else {
-			// Primitive number or numeric-like (e.g., booleans)
+			// primitive number or numeric-like (e.g., booleans)
 			metrics.push(Number(value));
 		}
 	});
@@ -95,7 +86,7 @@ function updateFromArray(ref, doc, metrics, pos = 0) {
 	Object.entries(ref).forEach(([key, value]) => {
 		if (typeof value === 'string' && value.startsWith('Timestamp')) {
 			doc[key] = metrics[pos++];
-			pos++; // Skip ordinal
+			pos++; // skip ordinal
 			return;
 		}
 
