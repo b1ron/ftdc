@@ -72,7 +72,7 @@ export const parseBSON = function (buffer, options = {FTDC: false}) {
 			continue;
 		}
 
-		// only parse a key if the current context is an object, not an array
+		// only parse key if the current context is an object, not an array
 		if (!(isArray)) {
 			key = buffer
 				.subarray(index, indexAfterCString(buffer, index) - 1)
