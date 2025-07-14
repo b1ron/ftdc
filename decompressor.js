@@ -11,8 +11,8 @@ async function inflate(buffer) {
 			controller.close();
 		},
 	});
-	const decompressionStream = new DecompressionStream('deflate');
-	const decompressedStream = byteStream.pipeThrough(decompressionStream);
+	const ds = new DecompressionStream('deflate');
+	const decompressedStream = byteStream.pipeThrough(ds);
 	return new Response(decompressedStream).bytes();
 }
 
@@ -42,10 +42,13 @@ export const uncompress = async function (compressed) {
 	const sampleCount = reader.readUint32LE();
 
 	ref = flattenObject(ref);
-	const metrics = [];
-	extractMetrics(ref, metrics); // FIXME
-
+  Object.entries(ref).forEach(([key, value]) => {
+    if (typeof value === 'string' && !isValid(value)) {
+      delete ref[key];
+    }
+  });
 	// reader.readUint32LE();
+  console.log(Object.keys(ref).length, metricsCount);
 };
 
 function flattenObject(obj, path = '', result = {}) {
@@ -59,41 +62,10 @@ function flattenObject(obj, path = '', result = {}) {
 	return result;
 }
 
-function extractMetrics(doc, metrics) {
-	Object.values(doc).forEach(value => {
-		// extract two numbers from timestamp
-		if (typeof value === 'string' && value.startsWith('Timestamp')) {
-			const numbers = value.match(/\d+/g);
-			metrics.push(...numbers);
-			return;
-		}
-
-		if (value instanceof Date) {
-			metrics.push(value.getTime());
-			return;
-		}
-
-		if (value.constructor === Object || Array.isArray(value)) {
-			extractMetrics(value, metrics);
-		} else {
-			// primitive number or numeric-like (e.g., booleans)
-			metrics.push(Number(value));
-		}
-	});
+function isValid(value) {
+    return (!isNaN(value)
+     || /^-?\d\.\d+$/.test(value)
+     || value.startsWith('Timestamp')
+     || !isNaN(Date.parse(value)))
 }
 
-function updateFromArray(ref, doc, metrics, pos = 0) {
-	Object.entries(ref).forEach(([key, value]) => {
-		if (typeof value === 'string' && value.startsWith('Timestamp')) {
-			doc[key] = metrics[pos++];
-			pos++; // skip ordinal
-			return;
-		}
-
-		if (value.constructor === Object || Array.isArray(value)) {
-			updateFromArray(value, doc, metrics, pos);
-		} else {
-			doc[key] = metrics[pos++];
-		}
-	});
-}
