@@ -1,4 +1,3 @@
- 
 // parser.js contains a BSON parser with an option for FTDC files.
 
 import * as BSON from './constants.js';
@@ -159,7 +158,6 @@ export const parseBSON = function (buffer, options = {FTDC: false}) {
       break;
     case BSON.NULL:
       value = null;
-      console.log('NULL');
       put(currentObj, key, value);
       break;
     case BSON.REGEXP:
