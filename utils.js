@@ -114,19 +114,23 @@ export const readBigInt64LE = function (buffer, offset = 0) {
 
 // uses LEB128
 function decodeVarint(buffer) {
-  let current = 0;
+  let current = 0n;
   let i = 0;
-  let shift = 0;
+  let shift = 0n;
   let byte = buffer[i];
+  if (byte === undefined) {
+    throw new Error('Unexpected end of buffer');
+  }
+
   // indicates a continuation bit (MSB = 1)
   while (byte >= 128) {
-    current += (byte & 127) << shift; // extract 7 bits and shift
-    shift += 7;
+    current += BigInt(byte & 127) * (1n << shift); // extract 7 bits and shift
+    shift += 7n;
     byte = buffer[++i];
   }
 
   i++;
-  current += byte << shift;
+  current += BigInt(byte) * (1n << shift);
   return {current, i};
 }
 
@@ -141,6 +145,9 @@ export const createBufferReader = function (buffer) {
       const v = readUint32LE(buffer);
       buffer = buffer.slice(4);
       return v;
+    },
+    isEmpty() {
+      return buffer.length === 0;
     },
   };
 };
@@ -158,3 +165,7 @@ export const toHex = function (buffer, separator = '') {
 export const toBase64 = function (buffer) {
   return btoa(buffer.toString());
 };
+
+export const log = function (...message) {
+  console.log(...message);
+}

@@ -159,6 +159,7 @@ export const parseBSON = function (buffer, options = {FTDC: false}) {
       break;
     case BSON.NULL:
       value = null;
+      console.log('NULL');
       put(currentObj, key, value);
       break;
     case BSON.REGEXP:
