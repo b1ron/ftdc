@@ -57,11 +57,13 @@ function restoreSamples(deltas, metrics, numSamples) {
   for (let i = 0; i < metrics.length; i++) {
     const offset = i * numSamples;
     restored[offset] = deltas[offset] + metrics[i];
+
     for (let j = 1; j < numSamples; j++) {
       const index = offset + j;
       if (deltas[index] === undefined || deltas[index - 1] === undefined) {
-        throw new Error('Unexpected end of buffer at index ' + index);
+        throw new RangeError('Index is outside the bounds of the deltas array');
       }
+      
       const value = deltas[index] + deltas[index - 1];
       restored[index] = value;
     }
@@ -77,7 +79,9 @@ function* iterateMetricSamples(restored, numMetrics, numSamples) {
       const value = restored[index];
       sample.push(value);
     }
+
     yield { sample };
+
   }
 }
 
@@ -125,7 +129,6 @@ function isValid(value) {
   return (numberStringPattern.test(value) || value.startsWith('Timestamp'));
 }
 
-// TODO: lint with XO w/ spaces
 function extractFromObj(obj) {
   const result = [];
   for (const key in obj) {
