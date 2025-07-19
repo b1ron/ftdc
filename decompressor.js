@@ -1,9 +1,9 @@
 // decompressor.js contains functions to decompress compressed FTDC metrics data.
 // Archive File Format - https://github.com/mongodb/mongo/blob/0a68308f0d39a928ed551f285ba72ca560c38576/src/mongo/db/ftdc/README.md#archive-file-format
 
-import * as parser from './parser.js';
-import * as utils from './utils.js';
-import { log } from './utils.js';
+import * as parser from "./parser.js";
+import * as utils from "./utils.js";
+import { log } from "./utils.js";
 
 async function inflate(buffer) {
   const byteStream = new ReadableStream({
@@ -12,7 +12,7 @@ async function inflate(buffer) {
       controller.close();
     },
   });
-  const ds = new DecompressionStream('deflate');
+  const ds = new DecompressionStream("deflate");
   const decompressedStream = byteStream.pipeThrough(ds);
   return new Response(decompressedStream).bytes();
 }
@@ -24,15 +24,15 @@ export const uncompress = async function (compressed) {
   const uncompressedLength = utils.readUint32LE(compressed);
 
   if (uncompressedLength > 10000000) {
-    throw new Error('TODO');
+    throw new Error("TODO");
   }
 
   // FTDC true returns compressed metrics
-  const options = {FTDC: true};
+  const options = { FTDC: true };
   compressed = parser.parseBSON(compressed, options);
 
   let buffer = await inflate(compressed.data);
-  
+
   const size = utils.readUint32LE(buffer);
   let ref = parser.parseBSON(buffer.subarray(0, size));
   ref = flattenObject(ref);
@@ -43,11 +43,15 @@ export const uncompress = async function (compressed) {
   const numMetrics = reader.readUint32LE();
   const numSamples = reader.readUint32LE();
 
-  const metrics = extractFromObj(ref); 
-  
+  const metrics = extractFromObj(ref);
+
   const deltas = decodeDeltas(reader);
   const restored = restoreSamples(deltas, metrics, numSamples);
-  for (const { sample } of iterateMetricSamples(restored, numMetrics, numSamples)) {
+  for (const { sample } of iterateMetricSamples(
+    restored,
+    numMetrics,
+    numSamples,
+  )) {
     log(sample);
   }
 };
@@ -61,9 +65,9 @@ function restoreSamples(deltas, metrics, numSamples) {
     for (let j = 1; j < numSamples; j++) {
       const index = offset + j;
       if (deltas[index] === undefined || deltas[index - 1] === undefined) {
-        throw new RangeError('Index is outside the bounds of the deltas array');
+        throw new RangeError("Index is outside the bounds of the deltas array");
       }
-      
+
       const value = deltas[index] + deltas[index - 1];
       restored[index] = value;
     }
@@ -81,7 +85,6 @@ function* iterateMetricSamples(restored, numMetrics, numSamples) {
     }
 
     yield { sample };
-
   }
 }
 
@@ -90,7 +93,7 @@ function decodeDeltas(reader, numMetrics, numSamples) {
   let zeroCount = 0;
   while (!reader.isEmpty()) {
     if (zeroCount > 0n) {
-      zeroCount--
+      zeroCount--;
       deltas.push(0n);
       continue;
     }
@@ -99,34 +102,36 @@ function decodeDeltas(reader, numMetrics, numSamples) {
     if (value === 0n) {
       zeroCount = reader.decodeVarint();
     }
-    
+
     deltas.push(value);
   }
   return deltas;
 }
 
-function flattenObject(obj, path = '', result = {}) {
+function flattenObject(obj, path = "", result = {}) {
   Object.entries(obj).forEach(([key, value]) => {
     if (value.constructor === Object || Array.isArray(value)) {
-      return flattenObject(value, path ? path + '.' + key : key, result);
+      return flattenObject(value, path ? path + "." + key : key, result);
     }
 
-    result[path ? path + '.' + key : key] = value;
+    result[path ? path + "." + key : key] = value;
   });
   return result;
 }
 
 function isValid(value) {
-  if (typeof value === 'number' 
-    || value instanceof Date
-    || typeof value === 'boolean') {
+  if (
+    typeof value === "number" ||
+    value instanceof Date ||
+    typeof value === "boolean"
+  ) {
     return true;
   }
 
-  if (typeof value !== 'string') return false;
+  if (typeof value !== "string") return false;
 
   const numberStringPattern = /^-?\d+(\.\d+)?$/;
-  return (numberStringPattern.test(value) || value.startsWith('Timestamp'));
+  return numberStringPattern.test(value) || value.startsWith("Timestamp");
 }
 
 function extractFromObj(obj) {
@@ -141,9 +146,9 @@ function extractFromObj(obj) {
     if (value instanceof Date) {
       value = value.getTime();
     }
-    if (typeof value === 'string' && value.startsWith('Timestamp')) {
-      const numbers = value.match(/\d+/g); 
-      result.push(...numbers.map(x => BigInt(x)));
+    if (typeof value === "string" && value.startsWith("Timestamp")) {
+      const numbers = value.match(/\d+/g);
+      result.push(...numbers.map((x) => BigInt(x)));
       continue;
     }
     result.push(BigInt(value));
