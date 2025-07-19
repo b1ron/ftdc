@@ -47,7 +47,7 @@ export const readUint32LE = function (buffer, offset = 0) {
   const first = buffer[offset];
   const last = buffer[offset + 3];
   if (first === undefined || last === undefined) {
-    throw new Error(`Buffer access out of range: offset=${offset}, buffer length=${buffer.length}`);
+    throw new RangeError('Buffer index is out of bounds');
   }
 
   return (
@@ -62,7 +62,7 @@ export const readInt32LE = function (buffer, offset = 0) {
   const first = buffer[offset];
   const last = buffer[offset + 3];
   if (first === undefined || last === undefined) {
-    throw new Error(`Buffer access out of range: offset=${offset}, buffer length=${buffer.length}`);
+    throw new RangeError('Buffer index is out of bounds');
   }
 
   return (
@@ -77,7 +77,7 @@ export const readDoubleLE = function (buffer, offset = 0) {
   const first = buffer[offset];
   const last = buffer[offset + 7];
   if (first === undefined || last === undefined) {
-    throw new Error(`Buffer access out of range: offset=${offset}, buffer length=${buffer.length}`);
+    throw new RangeError('Buffer index is out of bounds');
   }
 
   uInt8Float64Array[0] = first;
@@ -95,7 +95,7 @@ export const readBigInt64LE = function (buffer, offset = 0) {
   const first = buffer[offset];
   const last = buffer[offset + 7];
   if (first === undefined || last === undefined) {
-    throw new Error(`Buffer access out of range: offset=${offset}, buffer length=${buffer.length}`);
+    throw new RangeError('Buffer index is out of bounds');
   }
 
   const value
@@ -119,7 +119,7 @@ function decodeVarint(buffer) {
   let shift = 0n;
   let byte = buffer[i];
   if (byte === undefined) {
-    throw new Error('Unexpected end of buffer');
+    throw new RangeError('Buffer index if out of bounds');
   }
 
   // indicates a continuation bit (MSB = 1)

@@ -59,7 +59,11 @@ function restoreSamples(deltas, metrics, numSamples) {
     restored[offset] = deltas[offset] + metrics[i];
     for (let j = 1; j < numSamples; j++) {
       const index = offset + j;
-      restored[index] = deltas[index] + deltas[index - 1];
+      if (deltas[index] === undefined || deltas[index - 1] === undefined) {
+        throw new Error('Unexpected end of buffer at index ' + index);
+      }
+      const value = deltas[index] + deltas[index - 1];
+      restored[index] = value;
     }
   }
   return restored;
@@ -81,7 +85,7 @@ function decodeDeltas(reader, numMetrics, numSamples) {
   const deltas = [];
   let zeroCount = 0;
   while (!reader.isEmpty()) {
-    if (zeroCount > 0) {
+    if (zeroCount > 0n) {
       zeroCount--
       deltas.push(0n);
       continue;
@@ -91,11 +95,8 @@ function decodeDeltas(reader, numMetrics, numSamples) {
     if (value === 0n) {
       zeroCount = reader.decodeVarint();
     }
-
     
-    if (value !== 0) {
-      deltas.push(BigInt(value));
-    }
+    deltas.push(value);
   }
   return deltas;
 }
