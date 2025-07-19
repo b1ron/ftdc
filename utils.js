@@ -12,17 +12,17 @@ const uInt8Float64Array = new Uint8Array(float64Array.buffer);
 class BSONError extends Error {
   constructor(message) {
     super(message);
-    this.name = 'BSONError';
+    this.name = "BSONError";
   }
 }
 
 export const validateBuffer = function (buffer, size, index = 0) {
   if (size < 5) {
-    throw new BSONError('Invalid BSON size');
+    throw new BSONError("Invalid BSON size");
   }
 
   if (buffer[size + index - 1] !== 0) {
-    throw new BSONError('Invalid BSON terminator');
+    throw new BSONError("Invalid BSON terminator");
   }
 };
 
@@ -47,14 +47,14 @@ export const readUint32LE = function (buffer, offset = 0) {
   const first = buffer[offset];
   const last = buffer[offset + 3];
   if (first === undefined || last === undefined) {
-    throw new RangeError('Buffer index is out of bounds');
+    throw new RangeError("Buffer index is out of bounds");
   }
 
   return (
-    first
-		+ buffer[++offset] * 2 ** 8
-		+ buffer[++offset] * 2 ** 16
-		+ last * 2 ** 24
+    first +
+    buffer[++offset] * 2 ** 8 +
+    buffer[++offset] * 2 ** 16 +
+    last * 2 ** 24
   );
 };
 
@@ -62,14 +62,14 @@ export const readInt32LE = function (buffer, offset = 0) {
   const first = buffer[offset];
   const last = buffer[offset + 3];
   if (first === undefined || last === undefined) {
-    throw new RangeError('Buffer index is out of bounds');
+    throw new RangeError("Buffer index is out of bounds");
   }
 
   return (
-    first
-		+ buffer[++offset] * 2 ** 8
-		+ buffer[++offset] * 2 ** 16
-		+ (last << 24)
+    first +
+    buffer[++offset] * 2 ** 8 +
+    buffer[++offset] * 2 ** 16 +
+    (last << 24)
   );
 };
 
@@ -77,7 +77,7 @@ export const readDoubleLE = function (buffer, offset = 0) {
   const first = buffer[offset];
   const last = buffer[offset + 7];
   if (first === undefined || last === undefined) {
-    throw new RangeError('Buffer index is out of bounds');
+    throw new RangeError("Buffer index is out of bounds");
   }
 
   uInt8Float64Array[0] = first;
@@ -95,20 +95,22 @@ export const readBigInt64LE = function (buffer, offset = 0) {
   const first = buffer[offset];
   const last = buffer[offset + 7];
   if (first === undefined || last === undefined) {
-    throw new RangeError('Buffer index is out of bounds');
+    throw new RangeError("Buffer index is out of bounds");
   }
 
-  const value
-    = buffer[offset + 4]
-    	+ buffer[offset + 5] * 2 ** 8
-    	+ buffer[offset + 6] * 2 ** 16
-    	+ (last << 24); // overflow is expected here
+  const value =
+    buffer[offset + 4] +
+    buffer[offset + 5] * 2 ** 8 +
+    buffer[offset + 6] * 2 ** 16 +
+    (last << 24); // overflow is expected here
   return (
-    (BigInt(value) << 32n)
-		+ BigInt(first
-			+ buffer[++offset] * 2 ** 8
-			+ buffer[++offset] * 2 ** 16
-			+ buffer[++offset] * 2 ** 24)
+    (BigInt(value) << 32n) +
+    BigInt(
+      first +
+        buffer[++offset] * 2 ** 8 +
+        buffer[++offset] * 2 ** 16 +
+        buffer[++offset] * 2 ** 24,
+    )
   );
 };
 
@@ -119,7 +121,7 @@ function decodeVarint(buffer) {
   let shift = 0n;
   let byte = buffer[i];
   if (byte === undefined) {
-    throw new RangeError('Buffer index if out of bounds');
+    throw new RangeError("Buffer index if out of bounds");
   }
 
   // indicates a continuation bit (MSB = 1)
@@ -131,7 +133,7 @@ function decodeVarint(buffer) {
 
   i++;
   current += BigInt(byte) * (1n << shift);
-  return {current, i};
+  return { current, i };
 }
 
 export const createBufferReader = function (buffer) {
@@ -153,13 +155,11 @@ export const createBufferReader = function (buffer) {
 };
 
 export const toString = function () {
-  return new TextDecoder('utf-8').decode(this);
+  return new TextDecoder("utf-8").decode(this);
 };
 
-export const toHex = function (buffer, separator = '') {
-  return [...this]
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join(separator);
+export const toHex = function (buffer, separator = "") {
+  return [...this].map((b) => b.toString(16).padStart(2, "0")).join(separator);
 };
 
 export const toBase64 = function (buffer) {
@@ -168,4 +168,4 @@ export const toBase64 = function (buffer) {
 
 export const log = function (...message) {
   console.log(...message);
-}
+};
