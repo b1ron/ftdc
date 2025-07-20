@@ -1,7 +1,7 @@
 // parser.js contains a BSON parser with an option for FTDC files.
 
-import * as BSON from "./constants.js";
-import * as utils from "./utils.js";
+import * as BSON from './constants.js';
+import * as utils from './utils.js';
 
 function indexAfterCString(buffer, offset) {
   let i = offset;
@@ -73,9 +73,7 @@ export const parseBSON = function (buffer, options = { FTDC: false }) {
 
     // only parse key if the current context is an object, not an array
     if (!isArray) {
-      key = buffer
-        .subarray(index, indexAfterCString(buffer, index) - 1)
-        .toString();
+      key = buffer.subarray(index, indexAfterCString(buffer, index) - 1).toString();
     }
 
     index = indexAfterCString(buffer, index);
@@ -129,7 +127,7 @@ export const parseBSON = function (buffer, options = { FTDC: false }) {
         value = buffer
           .subarray(index, index + size)
           .map((b) => b.toString(16))
-          .join("");
+          .join('');
         put(currentObj, key, value);
 
         // return the metrics chunk for further parsing
@@ -175,7 +173,13 @@ export const parseBSON = function (buffer, options = { FTDC: false }) {
         break;
       case BSON.TIMESTAMP:
         value = utils.readTimestamp(buffer, index);
-        put(currentObj, key, value);
+        if (options.FTDC) {
+          const numbers = value.match(/\d+/g);
+          put(currentObj, key + '_t', numbers[0]);
+          put(currentObj, key + '_i', numbers[1]);
+        } else {
+          put(currentObj, key, value);
+        }
         index += 8;
         break;
       case BSON.LONG:
