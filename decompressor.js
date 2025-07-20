@@ -1,9 +1,9 @@
 // decompressor.js contains functions to decompress compressed FTDC metrics data.
 // Archive File Format - https://github.com/mongodb/mongo/blob/0a68308f0d39a928ed551f285ba72ca560c38576/src/mongo/db/ftdc/README.md#archive-file-format
 
-import * as parser from "./parser.js";
-import * as utils from "./utils.js";
-import { log } from "./utils.js";
+import * as parser from './parser.js';
+import * as utils from './utils.js';
+import { log } from './utils.js';
 
 async function inflate(buffer) {
   const byteStream = new ReadableStream({
@@ -12,19 +12,22 @@ async function inflate(buffer) {
       controller.close();
     },
   });
-  const ds = new DecompressionStream("deflate");
+  const ds = new DecompressionStream('deflate');
   const decompressedStream = byteStream.pipeThrough(ds);
   return new Response(decompressedStream).bytes();
 }
 
 /**
- * TODO
+ * Decompresses a zlib-compressed metrics chunk and returns an array of samples.
+ * NOTE: Metrics / variable names are represented using dot-notation (e.g., 'serverStatus.start').
  */
 export const uncompress = async function (compressed) {
+  const MAX_CHUNK_SIZE = 10000000;
+
   const uncompressedLength = utils.readUint32LE(compressed);
 
-  if (uncompressedLength > 10000000) {
-    throw new Error("TODO");
+  if (uncompressedLength > MAX_CHUNK_SIZE) {
+    throw new Error('Maximum chunk size exceeded');
   }
 
   // FTDC true returns compressed metrics
@@ -34,7 +37,7 @@ export const uncompress = async function (compressed) {
   let buffer = await inflate(compressed.data);
 
   const size = utils.readUint32LE(buffer);
-  let ref = parser.parseBSON(buffer.subarray(0, size));
+  let ref = parser.parseBSON(buffer.subarray(0, size), options);
   ref = flattenObject(ref);
   buffer = buffer.subarray(size, buffer.length);
 
@@ -47,28 +50,37 @@ export const uncompress = async function (compressed) {
 
   const deltas = decodeDeltas(reader);
   const restored = restoreSamples(deltas, metrics, numSamples);
-  for (const { sample } of iterateMetricSamples(
-    restored,
-    numMetrics,
-    numSamples,
-  )) {
-    log(sample);
+
+  const samples = [];
+
+  // iterate row-wise over restored samples, mapping each value to its corresponding
+  // variable name from ref
+  for (const { sample } of iterateMetricSamples(restored, numMetrics, numSamples)) {
+    const sampleWithVariables = { ...ref };
+    Object.keys(ref).forEach((key, pos) => {
+      sampleWithVariables[key] = sample[pos];
+    });
+    samples.push(sampleWithVariables);
   }
+
+  return samples;
 };
 
 function restoreSamples(deltas, metrics, numSamples) {
   const restored = [];
   for (let i = 0; i < metrics.length; i++) {
     const offset = i * numSamples;
-    restored[offset] = deltas[offset] + metrics[i];
+    deltas[offset] = deltas[offset] + metrics[i];
+    restored[offset] = deltas[offset];
 
     for (let j = 1; j < numSamples; j++) {
       const index = offset + j;
       if (deltas[index] === undefined || deltas[index - 1] === undefined) {
-        throw new RangeError("Index is outside the bounds of the deltas array");
+        throw new RangeError('Index is outside the bounds of the deltas array');
       }
 
       const value = deltas[index] + deltas[index - 1];
+      deltas[index] = value;
       restored[index] = value;
     }
   }
@@ -81,6 +93,9 @@ function* iterateMetricSamples(restored, numMetrics, numSamples) {
     for (let j = 0; j < numMetrics; j++) {
       const index = j * numSamples + i;
       const value = restored[index];
+      if (value === undefined) {
+        throw new RangeError('Index is outside the bounds of the restored array');
+      }
       sample.push(value);
     }
 
@@ -108,30 +123,26 @@ function decodeDeltas(reader, numMetrics, numSamples) {
   return deltas;
 }
 
-function flattenObject(obj, path = "", result = {}) {
+function flattenObject(obj, path = '', result = {}) {
   Object.entries(obj).forEach(([key, value]) => {
     if (value.constructor === Object || Array.isArray(value)) {
-      return flattenObject(value, path ? path + "." + key : key, result);
+      return flattenObject(value, path ? path + '.' + key : key, result);
     }
 
-    result[path ? path + "." + key : key] = value;
+    result[path ? path + '.' + key : key] = value;
   });
   return result;
 }
 
 function isValid(value) {
-  if (
-    typeof value === "number" ||
-    value instanceof Date ||
-    typeof value === "boolean"
-  ) {
+  if (typeof value === 'number' || value instanceof Date || typeof value === 'boolean') {
     return true;
   }
 
-  if (typeof value !== "string") return false;
+  if (typeof value !== 'string') return false;
 
   const numberStringPattern = /^-?\d+(\.\d+)?$/;
-  return numberStringPattern.test(value) || value.startsWith("Timestamp");
+  return numberStringPattern.test(value);
 }
 
 function extractFromObj(obj) {
@@ -145,11 +156,6 @@ function extractFromObj(obj) {
 
     if (value instanceof Date) {
       value = value.getTime();
-    }
-    if (typeof value === "string" && value.startsWith("Timestamp")) {
-      const numbers = value.match(/\d+/g);
-      result.push(...numbers.map((x) => BigInt(x)));
-      continue;
     }
     result.push(BigInt(value));
   }
