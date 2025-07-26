@@ -131,8 +131,8 @@ export const parseBSON = function (buffer, options = { FTDC: false }) {
         put(currentObj, key, value);
 
         // return the metrics chunk for further parsing
-        if (size + index > totalSize && options.FTDC) {
-          value = buffer.subarray(index + 8 + 1, buffer.length);
+        if (options.FTDC) {
+          value = buffer.subarray(index + 8 + 1, index + size + 5); 
           put(currentObj, key, value);
           return object;
         }
